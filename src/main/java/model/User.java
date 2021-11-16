@@ -1,23 +1,21 @@
 package model;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
+import javax.persistence.JoinTable;
 import javax.persistence.Table;
 
 import exceptions.InvalidArgumentException;
 
 @Entity
 @Table(name="users")
-public class User implements IUser {
+public class User {
 
 	private static final String USERNAME_ERROR_MESSAGE = "Username can not be null or empty string!";
 	private static final String ID_ERROR_MESSAGE = "ID can not be 0 or negative number";
@@ -26,7 +24,7 @@ public class User implements IUser {
 	
 	@Id
 	@Column
-	@GeneratedValue(strategy=GenerationType.AUTO)
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	private int id;
 	
 	@Column
@@ -38,12 +36,12 @@ public class User implements IUser {
 	@Column
 	private String email;
 	
-	@ManyToOne(cascade=CascadeType.ALL, 
-			fetch = FetchType.EAGER)
-	@JoinColumn(name="currency_id")
+	@JoinTable(name = "currencies", joinColumns = @JoinColumn(name = "currency"))
+	@Column(name = "currency", nullable = false, length=1)
+	@Enumerated(EnumType.STRING)
 	private Currency currency;
-	
-	
+
+	public User() {}
 	
 	public User(int id, String username, String password, String email, Currency currency)
 									throws InvalidArgumentException {
@@ -54,39 +52,30 @@ public class User implements IUser {
 		this.setCurrency(currency);
 	}
 
-	@Override
 	public int getId() {
 		return id;
 	}
 	
-	@Override
 	public String getUsername() {
 		return username;
 	}
 	
-	@Override
 	public String getPassword() {
 		return password;
 	}
 	
-	@Override
 	public String getEmail() {
 		return email;
 	}
 	
-	@Override
-	@Enumerated(EnumType.STRING)
 	public Currency getCurrency() {
 		return currency;		
 	}
 	
-	@Override
-	@Enumerated(EnumType.STRING)
 	public void setCurrency(Currency currency) {
 		this.currency = currency;
 	}
 	
-	@Override
 	public void setId(int id) throws InvalidArgumentException {
 		if (id < 1) {
 			throw new InvalidArgumentException(ID_ERROR_MESSAGE);
@@ -94,7 +83,6 @@ public class User implements IUser {
 		this.id = id;
 	}
 	
-	@Override
 	public void setUsername(String username) throws InvalidArgumentException {
 		if (username == null || username.isEmpty()) {
 			throw new InvalidArgumentException(USERNAME_ERROR_MESSAGE);
@@ -102,7 +90,6 @@ public class User implements IUser {
 		this.username = username;
 	}
 	
-	@Override
 	public void setPassword(String password) throws InvalidArgumentException {
 		if (password == null || password.isEmpty()) {
 			throw new InvalidArgumentException(PASSWORD_ERROR_MESSAGE);
@@ -110,7 +97,6 @@ public class User implements IUser {
 		this.password = password;
 	}
 	
-	@Override
 	public void setEmail(String email) throws InvalidArgumentException {
 		if (email == null || email.isEmpty()) {
 			throw new InvalidArgumentException(EMAIL_ERROR_MESSAGE);
