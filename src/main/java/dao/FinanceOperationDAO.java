@@ -38,13 +38,17 @@ public class FinanceOperationDAO implements IFinanceOperationDAO {
 
 	@Override
 	public Income getIncomeById(int id) {
+		sessionFactory.getCurrentSession().beginTransaction();
 		Income income = sessionFactory.getCurrentSession().get(Income.class, id);
+		sessionFactory.getCurrentSession().getTransaction().commit();
 		return income;
 	}
 
 	@Override
 	public Expense getExpenseById(int id) {
+		sessionFactory.getCurrentSession().beginTransaction();
 		Expense expense = sessionFactory.getCurrentSession().get(Expense.class, id);
+		sessionFactory.getCurrentSession().getTransaction().commit();
 		return expense;
 	}
 
@@ -52,8 +56,8 @@ public class FinanceOperationDAO implements IFinanceOperationDAO {
 	public Collection<Income> getAllIncomesByAccount(Account account) {
 		sessionFactory.getCurrentSession().beginTransaction();
 		Query query = sessionFactory.getCurrentSession().createQuery(
-				"from Income i where i.account_id = :account_id");
-		query.setInteger("account_id", account.getId());
+				"from Income i where i.account = :account");
+		query.setEntity("account", account);
 		Collection<Income> result = query.list();
 		sessionFactory.getCurrentSession().getTransaction().commit();
 		return result;
@@ -63,8 +67,8 @@ public class FinanceOperationDAO implements IFinanceOperationDAO {
 	public Collection<Expense> getAllExpensesByAccount(Account account) {
 		sessionFactory.getCurrentSession().beginTransaction();
 		Query query = sessionFactory.getCurrentSession().createQuery(
-				"from Expense e where e.account_id = :account_id");
-		query.setInteger("account_id", account.getId());
+				"from Expense e where e.account = :account");
+		query.setEntity("account", account);
 		Collection<Expense> result = query.list();
 		sessionFactory.getCurrentSession().getTransaction().commit();
 		return result;
