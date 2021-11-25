@@ -3,6 +3,7 @@ package tests;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import model.Account;
@@ -12,21 +13,27 @@ import model.Expense;
 import model.FinanceOperationType;
 import model.Income;
 import model.RepeatType;
+import model.Tag;
 import model.User;
 
 import org.joda.time.LocalDate;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import dao.AccountDAO;
-import dao.FinanceOperationDAO;
 import dao.IAccountDAO;
 import dao.IFinanceOperationDAO;
+import dao.ITagDAO;
 import dao.IUserDAO;
-import dao.UserDAO;
 import exceptions.InvalidArgumentException;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes=dao.SpringWebConfiguration.class)
 public class FinanceOperationDAOTests {
-	private static final int LIST_SIZE = 15;
+	private static final int TAGS_COUNT = 3;
+	private static final int LIST_SIZE = 5;
 	private static final String NEW_DESCRIPTION_TEXT = "New description....";
 	private static final int NEW_AMOUNT = 123_000;
 	private static final String EXPENSE_DESCRIPTION_TEXT = "Electricity tax.";
@@ -38,9 +45,14 @@ public class FinanceOperationDAOTests {
 	private static final int ACCOUNT_BALANCE = 100_000;
 	private static final int RANDOM_NUMBERS_SIZE = 10_000;
 
-	private IAccountDAO accDAO = new AccountDAO();
-	private IUserDAO userDAO = new UserDAO();
-	private IFinanceOperationDAO foDAO = new FinanceOperationDAO();
+	@Autowired
+	private IAccountDAO accDAO;
+	@Autowired
+	private IUserDAO userDAO;
+	@Autowired
+	private ITagDAO tagDAO;
+	@Autowired
+	private IFinanceOperationDAO foDAO;
 
 	@Test
 	public void testAddIncome() {
@@ -57,6 +69,12 @@ public class FinanceOperationDAOTests {
 		assertEquals(income.getCurrency(), fromDB.getCurrency());
 		assertEquals(income.getDescription(), fromDB.getDescription());
 		assertEquals(income.getRepeatType(), fromDB.getRepeatType());
+		assertEquals(income.getTags().size(), fromDB.getTags().size());
+		
+		for (Tag tag : fromDB.getTags()) {
+			tagDAO.deleteTag(tag);
+		}
+		
 		Account acc = fromDB.getAccount();
 		User user = acc.getUser();
 		foDAO.delete(fromDB);
@@ -79,6 +97,12 @@ public class FinanceOperationDAOTests {
 		assertEquals(expense.getCurrency(), fromDB.getCurrency());
 		assertEquals(expense.getDescription(), fromDB.getDescription());
 		assertEquals(expense.getRepeatType(), fromDB.getRepeatType());
+		assertEquals(expense.getTags().size(), fromDB.getTags().size());
+		
+		for (Tag tag : fromDB.getTags()) {
+			tagDAO.deleteTag(tag);
+		}
+		
 		Account acc = fromDB.getAccount();
 		User user = acc.getUser();
 		foDAO.delete(fromDB);
@@ -109,6 +133,11 @@ public class FinanceOperationDAOTests {
 			assertEquals(income.getCurrency(), fromDB.getCurrency());
 			assertEquals(income.getDescription(), fromDB.getDescription());
 			assertEquals(income.getRepeatType(), fromDB.getRepeatType());
+			
+			for (Tag tag : fromDB.getTags()) {
+				tagDAO.deleteTag(tag);
+			}
+			
 			Account acc = fromDB.getAccount();
 			User user = acc.getUser();
 			foDAO.delete(fromDB);
@@ -142,6 +171,11 @@ public class FinanceOperationDAOTests {
 			assertEquals(expense.getCurrency(), fromDB.getCurrency());
 			assertEquals(expense.getDescription(), fromDB.getDescription());
 			assertEquals(expense.getRepeatType(), fromDB.getRepeatType());
+			
+			for (Tag tag : fromDB.getTags()) {
+				tagDAO.deleteTag(tag);
+			}
+			
 			Account acc = fromDB.getAccount();
 			User user = acc.getUser();
 			foDAO.delete(fromDB);
@@ -159,6 +193,11 @@ public class FinanceOperationDAOTests {
 		Income fromDB = foDAO.getIncomeById(id);
 		Account acc = fromDB.getAccount();
 		User user = acc.getUser();
+		
+		for (Tag tag : fromDB.getTags()) {
+			tagDAO.deleteTag(tag);
+		}
+		
 		foDAO.delete(fromDB);
 		accDAO.deleteAccount(acc);
 		userDAO.deleteUser(user);
@@ -171,6 +210,11 @@ public class FinanceOperationDAOTests {
 		Expense fromDB = foDAO.getExpenseById(id);
 		Account acc = fromDB.getAccount();
 		User user = acc.getUser();
+		
+		for (Tag tag : fromDB.getTags()) {
+			tagDAO.deleteTag(tag);
+		}
+		
 		foDAO.delete(fromDB);
 		accDAO.deleteAccount(acc);
 		userDAO.deleteUser(user);
@@ -184,6 +228,10 @@ public class FinanceOperationDAOTests {
 		assertEquals(incomes.size(), incomesFromDB.size());
 		
 		for (Income fromDB : incomesFromDB) {
+			for (Tag tag : fromDB.getTags()) {
+				tagDAO.deleteTag(tag);
+			}
+			
 			foDAO.delete(fromDB);
 		}
 		
@@ -199,7 +247,11 @@ public class FinanceOperationDAOTests {
 		List<Expense> expensesFromDB = (List<Expense>) foDAO.getAllExpensesByAccount(account);
 		assertEquals(expenses.size(), expensesFromDB.size());
 		
-		for (Expense fromDB : expensesFromDB) {
+		for (Expense fromDB : expensesFromDB) {	
+			for (Tag tag : fromDB.getTags()) {
+				tagDAO.deleteTag(tag);
+			}
+			
 			foDAO.delete(fromDB);
 		}
 		
@@ -261,6 +313,8 @@ public class FinanceOperationDAOTests {
 			income.setDate(LocalDate.now());
 			income.setDescription(INCOME_DESCRIPTION_TEXT);
 			income.setRepeatType(RepeatType.MONTHLY);
+			List<Tag> tags = addTagsToDB(FinanceOperationType.INCOME);
+			income.setTags(tags);
 		} catch (InvalidArgumentException e) {
 			e.printStackTrace();
 		}
@@ -285,11 +339,26 @@ public class FinanceOperationDAOTests {
 			expense.setDate(LocalDate.now());
 			expense.setDescription(EXPENSE_DESCRIPTION_TEXT);
 			expense.setRepeatType(RepeatType.MONTHLY);
+			List<Tag> tags = addTagsToDB(FinanceOperationType.EXPENSE);
+			expense.setTags(tags);
 		} catch (InvalidArgumentException e) {
 			e.printStackTrace();
 		}
 
 		return expense;
+	}
+
+	private List<Tag> addTagsToDB(FinanceOperationType forType) {
+		List<Tag> tags = new LinkedList<Tag>();
+		
+		for (int index = 0; index < TAGS_COUNT; index++) {
+			Tag tag = new Tag(0, "tag" + index, forType);
+			int id = tagDAO.addTag(tag);
+			tag.setId(id);
+			tags.add(tag);
+		}
+		
+		return tags;
 	}
 
 	private Account addAccountToDB() {

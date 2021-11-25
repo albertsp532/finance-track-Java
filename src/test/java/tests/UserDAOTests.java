@@ -6,16 +6,24 @@ import java.util.List;
 
 import model.Currency;
 import model.User;
+
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
 import dao.IUserDAO;
-import dao.UserDAO;
 import exceptions.InvalidArgumentException;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes=dao.SpringWebConfiguration.class)
 public class UserDAOTests {
 
 	private static final int RANDOM_NUMBER_FOR_TESTS = 10_000;
 
-	private IUserDAO dao = new UserDAO();
+	@Autowired
+	private IUserDAO dao;
 
 	@Test
 	public void testGetUserById() {

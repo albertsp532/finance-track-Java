@@ -1,21 +1,30 @@
 package tests;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import dao.CategoryDAO;
-import dao.ICategoryDAO;
 import model.Category;
 import model.FinanceOperationType;
 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import dao.ICategoryDAO;
+
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes=dao.SpringWebConfiguration.class)
 public class CategoryDAOTests {
 	
 	private static final int RANDOM_NUMBER_FOR_TESTS = 10_000;
 	private static final int NUMBER_OF_TEST_CATEGORIES = 10;
-	private ICategoryDAO dao = new CategoryDAO();
+	
+	@Autowired
+	private ICategoryDAO dao;
 	
 	@Test
 	public void testAddCatgory() {

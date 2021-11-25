@@ -9,16 +9,22 @@ import model.FinanceOperationType;
 import model.Tag;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import dao.ITagDAO;
-import dao.TagDAO;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes=dao.SpringWebConfiguration.class)
 public class TagDAOTests {
 	private static final int TAGS_COUNT = 15;
 	private static final String NEW_TAG_NAME = "New Tag Name";
-	private static final String TAG_NAME = "Job";
+	private static final String TAG_NAME = "Fun";
 	
-	private ITagDAO tagDAO = new TagDAO();
+	@Autowired
+	private ITagDAO tagDAO;
 	
 	@Test
 	public void testAddTag() {
@@ -76,18 +82,20 @@ public class TagDAOTests {
 	@Test
 	public void testGetAllTagsByTypeFor() {
 		List<Tag> tags = new ArrayList<Tag>(TAGS_COUNT);
+		List<Tag> tagsFromDB = (List<Tag>) tagDAO.getAllTagsByTypeFor(FinanceOperationType.EXPENSE);
+		int sizeBefore = tagsFromDB == null ? 0 : tagsFromDB.size();
 		
 		for (int index = 0; index < TAGS_COUNT; index++) {
 			Tag tag = new Tag();
 			tag.setTagName(TAG_NAME + index);
-			tag.setForType(FinanceOperationType.INCOME);
+			tag.setForType(FinanceOperationType.EXPENSE);
 			int id = tagDAO.addTag(tag);
 			tag.setId(id);
 			tags.add(tag);
 		}
 		
-		List<Tag> tagsFromDB = (List<Tag>) tagDAO.getAllTagsByTypeFor(FinanceOperationType.INCOME);
-		assertEquals(tags.size(), tagsFromDB.size());
+		tagsFromDB = (List<Tag>) tagDAO.getAllTagsByTypeFor(FinanceOperationType.EXPENSE);
+		assertEquals(tags.size(), tagsFromDB.size() - sizeBefore);
 		
 		for (Tag tag : tagsFromDB) {
 			tagDAO.deleteTag(tag);

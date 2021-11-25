@@ -1,28 +1,36 @@
 package tests;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import dao.AccountDAO;
-import dao.IAccountDAO;
-import dao.IUserDAO;
-import dao.UserDAO;
-import exceptions.InvalidArgumentException;
 import model.Account;
 import model.Currency;
 import model.User;
 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import dao.IAccountDAO;
+import dao.IUserDAO;
+import exceptions.InvalidArgumentException;
+
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes=dao.SpringWebConfiguration.class)
 public class AccountDAOTests {
 	
 	private static final int NUMBER_OF_TEST_ACCOUNTS = 10;
 	private static final int ACCOUNT_BALANCE_RANDOM_NUMBER = 2000;
 	private static final int RANDOM_NUMBER_SIZE = 10_000;
 	
-	private IAccountDAO dao = new AccountDAO();
-	private IUserDAO userDao = new UserDAO();
+	@Autowired
+	private IAccountDAO dao;
+	@Autowired
+	private IUserDAO userDao;
 	
 	@Test
 	public void testAddAccount() {
@@ -115,6 +123,23 @@ public class AccountDAOTests {
 			dao.deleteAccount(accounts.get(i));
 		}
 		userDao.deleteUser(user);		
+	}
+	
+	@Test
+	public void testGetAccountForUserByName() {
+		User user = addUserToDB();
+		Account account = makeNewAccount(user);
+		String title = account.getTitle();
+		
+		int id = dao.addAccount(account);
+		
+		Account fromDB = dao.getAccountForUserByName(title, user);
+		
+		assertEquals(fromDB.getBalance(), account.getBalance());
+		assertEquals(fromDB.getId(), id);
+		
+		dao.deleteAccount(account);
+		userDao.deleteUser(user);
 	}
 	
 	
