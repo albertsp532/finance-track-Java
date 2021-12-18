@@ -1,8 +1,6 @@
 package tests;
 
 import static org.junit.Assert.assertEquals;
-
-
 import static org.junit.Assert.assertNotEquals;
 
 import java.util.ArrayList;
@@ -24,7 +22,6 @@ import org.springframework.test.context.web.WebAppConfiguration;
 
 import dao.IBudgetDAO;
 import dao.IUserDAO;
-import exceptions.InvalidArgumentException;
 
 @WebAppConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -41,12 +38,11 @@ public class BudgetDAOTests {
 	private IUserDAO userDAO;
 
 	@Test
-	public void testAddBudget() {
+	public void testAddBudget() throws Exception {
 		User user = addUserToDB();
 		Budget budget = makeNewBudget(user);
 		int id = budgetDAO.add(budget);
 		Budget fromDB = budgetDAO.getBudgetById(id);
-
 		assertEquals(budget.getId(), fromDB.getId());
 		assertEquals(budget.getAmount(), fromDB.getAmount());
 		assertEquals(budget.getBeginDate(), fromDB.getBeginDate());
@@ -55,80 +51,67 @@ public class BudgetDAOTests {
 		assertEquals(budget.getCurrency(), fromDB.getCurrency());
 		assertEquals(budget.getRepeatType(), fromDB.getRepeatType());
 		assertEquals(budget.getUser().getId(), fromDB.getUser().getId());
-
 		budgetDAO.delete(fromDB);
 		userDAO.deleteUser(user);
 	}
 
 	@Test
-	public void testUpdateBudget() {
-		try {
-			User user = addUserToDB();
-			Budget budget = makeNewBudget(user);
-			int id = budgetDAO.add(budget);
-			budget.setId(id);
-			budget.setAmount(12345);
-			budget.setBeginDate(LocalDate.now().plusDays(123));
-			budget.setEndDate(LocalDate.now().plusDays(321));
-			budget.setCurrency(Currency.EUR);
-			budget.setRepeatType(RepeatType.MONTHLY);
-			budgetDAO.update(budget);
-			Budget fromDB = budgetDAO.getBudgetById(id);
-			assertEquals(budget.getAmount(), fromDB.getAmount());
-			assertEquals(budget.getBeginDate(), fromDB.getBeginDate());
-			assertEquals(budget.getEndDate(), fromDB.getEndDate());
-			assertEquals(budget.getCurrency(), fromDB.getCurrency());
-			assertEquals(budget.getRepeatType(), fromDB.getRepeatType());
-			assertEquals(budget.getId(), fromDB.getId());
-			budgetDAO.delete(budget);
-			userDAO.deleteUser(user);
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
-		}
+	public void testUpdateBudget() throws Exception {
+		User user = addUserToDB();
+		Budget budget = makeNewBudget(user);
+		int id = budgetDAO.add(budget);
+		budget.setId(id);
+		budget.setAmount(12345);
+		budget.setBeginDate(LocalDate.now().plusDays(123));
+		budget.setEndDate(LocalDate.now().plusDays(321));
+		budget.setCurrency(Currency.EUR);
+		budget.setRepeatType(RepeatType.MONTHLY);
+		budgetDAO.update(budget);
+		Budget fromDB = budgetDAO.getBudgetById(id);
+		assertEquals(budget.getAmount(), fromDB.getAmount());
+		assertEquals(budget.getBeginDate(), fromDB.getBeginDate());
+		assertEquals(budget.getEndDate(), fromDB.getEndDate());
+		assertEquals(budget.getCurrency(), fromDB.getCurrency());
+		assertEquals(budget.getRepeatType(), fromDB.getRepeatType());
+		assertEquals(budget.getId(), fromDB.getId());
+		budgetDAO.delete(budget);
+		userDAO.deleteUser(user);
 	}
 
 	@Test
-	public void testDeleteBudget() {
-		try {
-			User user = addUserToDB();
+	public void testDeleteBudget() throws Exception {
+		User user = addUserToDB();
+		Budget budget = makeNewBudget(user);
+		int id = budgetDAO.add(budget);
+		budget.setId(id);
+		budgetDAO.delete(budget);
+		userDAO.deleteUser(user);
+	}
+	
+	@Test
+	public void testGetBudgetsByUser() throws Exception {
+		User user = addUserToDB();
+		List<Budget> budgets = new ArrayList<Budget>(NUMBER_OF_BUDGETS);
+		
+		for (int index = 0; index < NUMBER_OF_BUDGETS; index++) {
 			Budget budget = makeNewBudget(user);
 			int id = budgetDAO.add(budget);
 			budget.setId(id);
-			budgetDAO.delete(budget);
-			userDAO.deleteUser(user);
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
+			budgets.add(budget);
 		}
+		
+		List<Budget> budgetsFromDB = (List<Budget>) budgetDAO.getAllBudgetsByUser(user);
+		assertEquals(budgets.size(), budgetsFromDB.size());
+		
+		for (int index = 0; index < NUMBER_OF_BUDGETS; index++) {
+			budgetDAO.delete(budgets.get(index));
+		}
+		
+		userDAO.deleteUser(user);
 	}
 	
 	@Test
-	public void testGetBudgetsByUser() {
-		try {
-			User user = addUserToDB();
-			List<Budget> budgets = new ArrayList<Budget>(NUMBER_OF_BUDGETS);
-			
-			for (int index = 0; index < NUMBER_OF_BUDGETS; index++) {
-				Budget budget = makeNewBudget(user);
-				int id = budgetDAO.add(budget);
-				budget.setId(id);
-				budgets.add(budget);
-			}
-			
-			List<Budget> budgetsFromDB = (List<Budget>) budgetDAO.getAllBudgetsByUser(user);
-			assertEquals(budgets.size(), budgetsFromDB.size());
-			
-			for (int index = 0; index < NUMBER_OF_BUDGETS; index++) {
-				budgetDAO.delete(budgets.get(index));
-			}
-			
-			userDAO.deleteUser(user);
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	@Test
-	public void testGetBudgetById() {
+	public void testGetBudgetById() throws Exception {
 		User user = addUserToDB();
 		Budget budget = makeNewBudget(user);
 		int id = budgetDAO.add(budget);
@@ -139,38 +122,28 @@ public class BudgetDAOTests {
 		userDAO.deleteUser(user);
 	}
 
-	private Budget makeNewBudget(User user) {
+	private Budget makeNewBudget(User user) throws Exception {
 		Budget budget = new Budget();
-
-		try {
-			budget.setAmount(MONEY_AMOUNT);
-			budget.setBeginDate(LocalDate.now());
-			budget.setEndDate(LocalDate.now().plusDays(5));
-			budget.setBudgetType(BudgetType.ALL);
-			budget.setCurrency(Currency.BGN);
-			budget.setRepeatType(RepeatType.NO_REPEAT);
-			budget.setUser(user);
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
-		}
+		budget.setAmount(MONEY_AMOUNT);
+		budget.setBeginDate(LocalDate.now());
+		budget.setEndDate(LocalDate.now().plusDays(5));
+		budget.setBudgetType(BudgetType.ALL);
+		budget.setCurrency(Currency.BGN);
+		budget.setRepeatType(RepeatType.NO_REPEAT);
+		budget.setUser(user);
 
 		return budget;
 	}
 
-	private User addUserToDB() {
+	private User addUserToDB() throws Exception {
 		User user = new User();
-
-		try {
-			int randNumber = (int) (Math.random() * RANDOM_NUMBERS_SIZE);
-			user.setUsername("testusername" + randNumber);
-			user.setEmail("testemail" + randNumber + "@domain.asd");
-			user.setPassword("123456");
-			user.setCurrency(Currency.BGN);
-			int id = userDAO.addUser(user);
-			user.setId(id);
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
-		}
+		int randNumber = (int) (Math.random() * RANDOM_NUMBERS_SIZE);
+		user.setUsername("testusername" + randNumber);
+		user.setEmail("testemail" + randNumber + "@domain.asd");
+		user.setPassword("123456");
+		user.setCurrency(Currency.BGN);
+		int id = userDAO.addUser(user);
+		user.setId(id);
 
 		return user;
 	}

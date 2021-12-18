@@ -25,10 +25,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import dao.IAccountDAO;
+import dao.ICategoryDAO;
 import dao.IFinanceOperationDAO;
 import dao.ITagDAO;
 import dao.IUserDAO;
-import exceptions.InvalidArgumentException;
 
 @WebAppConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -55,9 +55,11 @@ public class FinanceOperationDAOTests {
 	private ITagDAO tagDAO;
 	@Autowired
 	private IFinanceOperationDAO foDAO;
+	@Autowired
+	private ICategoryDAO categoryDAO;
 
 	@Test
-	public void testAddIncome() {
+	public void testAddIncome() throws Exception {
 		Income income = makeNewIncome();
 		int id = foDAO.add(income);
 		Income fromDB = foDAO.getIncomeById(id);
@@ -79,13 +81,15 @@ public class FinanceOperationDAOTests {
 		
 		Account acc = fromDB.getAccount();
 		User user = acc.getUser();
+		Category category = fromDB.getCategory();
 		foDAO.delete(fromDB);
+		categoryDAO.deleteCategory(category);
 		accDAO.deleteAccount(acc);
 		userDAO.deleteUser(user);
 	}
 
 	@Test
-	public void testAddExpense() {
+	public void testAddExpense() throws Exception {
 		Expense expense = makeNewExpense();
 		int id = foDAO.add(expense);
 		Expense fromDB = foDAO.getExpenseById(id);
@@ -107,89 +111,87 @@ public class FinanceOperationDAOTests {
 		
 		Account acc = fromDB.getAccount();
 		User user = acc.getUser();
+		Category category = fromDB.getCategory();
 		foDAO.delete(fromDB);
+		categoryDAO.deleteCategory(category);
 		accDAO.deleteAccount(acc);
 		userDAO.deleteUser(user);
 	}
 
 	@Test
-	public void testUpdateIncome() {
-		try {
-			Income income = makeNewIncome();
-			int id = foDAO.add(income);
-			income.setId(id);
-			income.setAmount(NEW_AMOUNT);
-			income.setCurrency(Currency.USD);
-			income.setDate(LocalDate.now().plusDays(1));
-			income.setDescription(NEW_DESCRIPTION_TEXT);
-			income.setRepeatType(RepeatType.DAILY);
-			foDAO.update(income);
-			Income fromDB = foDAO.getIncomeById(id);
-			assertEquals(id, fromDB.getId());
-			assertEquals(income.getAccount().getId(), fromDB.getAccount().getId());
-			assertEquals(income.getFinanceOperationType(), fromDB.getFinanceOperationType());
-			assertEquals(income.getDate(), fromDB.getDate());
-			assertEquals(income.getAmount(), fromDB.getAmount());
-			assertEquals(income.getCategory().getId(), fromDB.getCategory().getId());
-			assertEquals(income.getCategory().getCategoryName(), fromDB.getCategory().getCategoryName());
-			assertEquals(income.getCurrency(), fromDB.getCurrency());
-			assertEquals(income.getDescription(), fromDB.getDescription());
-			assertEquals(income.getRepeatType(), fromDB.getRepeatType());
-			
-			for (Tag tag : fromDB.getTags()) {
-				tagDAO.deleteTag(tag);
-			}
-			
-			Account acc = fromDB.getAccount();
-			User user = acc.getUser();
-			foDAO.delete(fromDB);
-			accDAO.deleteAccount(acc);
-			userDAO.deleteUser(user);
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
+	public void testUpdateIncome() throws Exception {
+		Income income = makeNewIncome();
+		int id = foDAO.add(income);
+		income.setId(id);
+		income.setAmount(NEW_AMOUNT);
+		income.setCurrency(Currency.USD);
+		income.setDate(LocalDate.now().plusDays(1));
+		income.setDescription(NEW_DESCRIPTION_TEXT);
+		income.setRepeatType(RepeatType.DAILY);
+		foDAO.update(income);
+		Income fromDB = foDAO.getIncomeById(id);
+		assertEquals(id, fromDB.getId());
+		assertEquals(income.getAccount().getId(), fromDB.getAccount().getId());
+		assertEquals(income.getFinanceOperationType(), fromDB.getFinanceOperationType());
+		assertEquals(income.getDate(), fromDB.getDate());
+		assertEquals(income.getAmount(), fromDB.getAmount());
+		assertEquals(income.getCategory().getId(), fromDB.getCategory().getId());
+		assertEquals(income.getCategory().getCategoryName(), fromDB.getCategory().getCategoryName());
+		assertEquals(income.getCurrency(), fromDB.getCurrency());
+		assertEquals(income.getDescription(), fromDB.getDescription());
+		assertEquals(income.getRepeatType(), fromDB.getRepeatType());
+		
+		for (Tag tag : fromDB.getTags()) {
+			tagDAO.deleteTag(tag);
 		}
+		
+		Account acc = fromDB.getAccount();
+		User user = acc.getUser();
+		Category category = fromDB.getCategory();
+		foDAO.delete(fromDB);
+		categoryDAO.deleteCategory(category);
+		accDAO.deleteAccount(acc);
+		userDAO.deleteUser(user);
 	}
 
 	@Test
-	public void testUpdateExpense() {
-		try {
-			Expense expense = makeNewExpense();
-			int id = foDAO.add(expense);
-			expense.setId(id);
-			expense.setAmount(NEW_AMOUNT);
-			expense.setCurrency(Currency.USD);
-			expense.setDate(LocalDate.now().plusDays(1));
-			expense.setDescription(NEW_DESCRIPTION_TEXT);
-			expense.setRepeatType(RepeatType.DAILY);
-			foDAO.update(expense);
-			Expense fromDB = foDAO.getExpenseById(id);
-			assertEquals(id, fromDB.getId());
-			assertEquals(expense.getAccount().getId(), fromDB.getAccount().getId());
-			assertEquals(expense.getFinanceOperationType(), fromDB.getFinanceOperationType());
-			assertEquals(expense.getDate(), fromDB.getDate());
-			assertEquals(expense.getAmount(), fromDB.getAmount());
-			assertEquals(expense.getCategory().getId(), fromDB.getCategory().getId());
-			assertEquals(expense.getCategory().getCategoryName(), fromDB.getCategory().getCategoryName());
-			assertEquals(expense.getCurrency(), fromDB.getCurrency());
-			assertEquals(expense.getDescription(), fromDB.getDescription());
-			assertEquals(expense.getRepeatType(), fromDB.getRepeatType());
-			
-			for (Tag tag : fromDB.getTags()) {
-				tagDAO.deleteTag(tag);
-			}
-			
-			Account acc = fromDB.getAccount();
-			User user = acc.getUser();
-			foDAO.delete(fromDB);
-			accDAO.deleteAccount(acc);
-			userDAO.deleteUser(user);
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
+	public void testUpdateExpense() throws Exception {
+		Expense expense = makeNewExpense();
+		int id = foDAO.add(expense);
+		expense.setId(id);
+		expense.setAmount(NEW_AMOUNT);
+		expense.setCurrency(Currency.USD);
+		expense.setDate(LocalDate.now().plusDays(1));
+		expense.setDescription(NEW_DESCRIPTION_TEXT);
+		expense.setRepeatType(RepeatType.DAILY);
+		foDAO.update(expense);
+		Expense fromDB = foDAO.getExpenseById(id);
+		assertEquals(id, fromDB.getId());
+		assertEquals(expense.getAccount().getId(), fromDB.getAccount().getId());
+		assertEquals(expense.getFinanceOperationType(), fromDB.getFinanceOperationType());
+		assertEquals(expense.getDate(), fromDB.getDate());
+		assertEquals(expense.getAmount(), fromDB.getAmount());
+		assertEquals(expense.getCategory().getId(), fromDB.getCategory().getId());
+		assertEquals(expense.getCategory().getCategoryName(), fromDB.getCategory().getCategoryName());
+		assertEquals(expense.getCurrency(), fromDB.getCurrency());
+		assertEquals(expense.getDescription(), fromDB.getDescription());
+		assertEquals(expense.getRepeatType(), fromDB.getRepeatType());
+		
+		for (Tag tag : fromDB.getTags()) {
+			tagDAO.deleteTag(tag);
 		}
+		
+		Account acc = fromDB.getAccount();
+		User user = acc.getUser();
+		Category category = fromDB.getCategory();
+		foDAO.delete(fromDB);
+		categoryDAO.deleteCategory(category);
+		accDAO.deleteAccount(acc);
+		userDAO.deleteUser(user);
 	}
 
 	@Test
-	public void testDeleteIncome() {
+	public void testDeleteIncome() throws Exception {
 		Income income = makeNewIncome();
 		int id = foDAO.add(income);
 		Income fromDB = foDAO.getIncomeById(id);
@@ -200,13 +202,15 @@ public class FinanceOperationDAOTests {
 			tagDAO.deleteTag(tag);
 		}
 		
+		Category category = fromDB.getCategory();
 		foDAO.delete(fromDB);
+		categoryDAO.deleteCategory(category);
 		accDAO.deleteAccount(acc);
 		userDAO.deleteUser(user);
 	}
 
 	@Test
-	public void testDeleteExpense() {
+	public void testDeleteExpense() throws Exception {
 		Expense expense = makeNewExpense();
 		int id = foDAO.add(expense);
 		Expense fromDB = foDAO.getExpenseById(id);
@@ -217,13 +221,16 @@ public class FinanceOperationDAOTests {
 			tagDAO.deleteTag(tag);
 		}
 		
+		Category category = fromDB.getCategory();
 		foDAO.delete(fromDB);
+		System.out.println(category.getId() + " " + category.getCategoryName());
+		categoryDAO.deleteCategory(category);
 		accDAO.deleteAccount(acc);
 		userDAO.deleteUser(user);
 	}
 
 	@Test
-	public void testGetAllIncomesByAccount() {
+	public void testGetAllIncomesByAccount() throws Exception {
 		List<Income> incomes = addManyIncomesToDB();
 		Account account = incomes.get(0).getAccount();
 		List<Income> incomesFromDB = (List<Income>) foDAO.getAllIncomesByAccount(account);
@@ -234,7 +241,9 @@ public class FinanceOperationDAOTests {
 				tagDAO.deleteTag(tag);
 			}
 			
+			Category category = fromDB.getCategory();
 			foDAO.delete(fromDB);
+			categoryDAO.deleteCategory(category);
 		}
 		
 		User user = account.getUser();
@@ -243,7 +252,7 @@ public class FinanceOperationDAOTests {
 	}
 	
 	@Test
-	public void testGetAllExpensesByAccount() {
+	public void testGetAllExpensesByAccount() throws Exception {
 		List<Expense> expenses = addManyExpensesToDB();
 		Account account = expenses.get(0).getAccount();
 		List<Expense> expensesFromDB = (List<Expense>) foDAO.getAllExpensesByAccount(account);
@@ -254,103 +263,103 @@ public class FinanceOperationDAOTests {
 				tagDAO.deleteTag(tag);
 			}
 			
+			Category category = fromDB.getCategory();
 			foDAO.delete(fromDB);
+			categoryDAO.deleteCategory(category);
 		}
 		
 		User user = account.getUser();
 		accDAO.deleteAccount(account);
 		userDAO.deleteUser(user);
-	}
+	}	
 	
-	private List<Income> addManyIncomesToDB() {
+	private List<Income> addManyIncomesToDB() throws Exception {
 		List<Income> incomes = new ArrayList<Income>(LIST_SIZE);
 		Account account = addAccountToDB();
 		
-		try {
-			for (int index = 0; index < LIST_SIZE; index++) {
-				Income income = makeNewIncome(account);
-				int id = foDAO.add(income);
-				income.setId(id);
-				incomes.add(income);
-			}
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
+		for (int index = 0; index < LIST_SIZE; index++) {
+			Income income = makeNewIncome(account);
+			int id = foDAO.add(income);
+			income.setId(id);
+			incomes.add(income);
 		}
 
 		return incomes;
 	}
 	
-	private List<Expense> addManyExpensesToDB() {
+	private List<Expense> addManyExpensesToDB() throws Exception {
 		List<Expense> expenses = new ArrayList<Expense>(LIST_SIZE);
 		Account account = addAccountToDB();
-		
-		try {
-			for (int index = 0; index < LIST_SIZE; index++) {
-				Expense expense = makeNewExpense(account);
-				int id = foDAO.add(expense);
-				expense.setId(id);
-				expenses.add(expense);
-			}
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
+
+		for (int index = 0; index < LIST_SIZE; index++) {
+			Expense expense = makeNewExpense(account);
+			int id = foDAO.add(expense);
+			expense.setId(id);
+			expenses.add(expense);
 		}
 
 		return expenses;
 	}
 
-	private Income makeNewIncome() {
+	private Income makeNewIncome() throws Exception {
 		Account account = addAccountToDB();
 		return makeNewIncome(account);
 	}
 	
-	private Income makeNewIncome(Account account) {
+	private Income makeNewIncome(Account account) throws Exception {
 		Income income = new Income();
-
-		try {
-			income.setAccount(account);
-			income.setAmount(INCOME_AMOUNT);
-			Category category = new Category(1, INCOME_CATEGORY, FinanceOperationType.INCOME);
-			income.setCategory(category);
-			income.setCurrency(Currency.BGN);
-			income.setDate(LocalDate.now());
-			income.setDescription(INCOME_DESCRIPTION_TEXT);
-			income.setRepeatType(RepeatType.MONTHLY);
-			List<Tag> tags = addTagsToDB(FinanceOperationType.INCOME);
-			income.setTags(tags);
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
-		}
+		income.setAccount(account);
+		income.setAmount(INCOME_AMOUNT);
+		Category category = addIncomeCategory();
+		income.setCategory(category);
+		income.setCurrency(Currency.BGN);
+		income.setDate(LocalDate.now());
+		income.setDescription(INCOME_DESCRIPTION_TEXT);
+		income.setRepeatType(RepeatType.MONTHLY);
+		List<Tag> tags = addTagsToDB(FinanceOperationType.INCOME);
+		income.setTags(tags);
 
 		return income;
 	}
 
-	private Expense makeNewExpense() {
+	private Expense makeNewExpense() throws Exception {
 		Account account = addAccountToDB();
 		return makeNewExpense(account);
 	}
 	
-	private Expense makeNewExpense(Account account) {
+	private Expense makeNewExpense(Account account) throws Exception {
 		Expense expense = new Expense();
-
-		try {
-			expense.setAccount(account);
-			expense.setAmount(15_000);
-			Category category = new Category(2, EXPENSE_CATEGORY, FinanceOperationType.EXPENSE);
-			expense.setCategory(category);
-			expense.setCurrency(Currency.BGN);
-			expense.setDate(LocalDate.now());
-			expense.setDescription(EXPENSE_DESCRIPTION_TEXT);
-			expense.setRepeatType(RepeatType.MONTHLY);
-			List<Tag> tags = addTagsToDB(FinanceOperationType.EXPENSE);
-			expense.setTags(tags);
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
-		}
+		expense.setAccount(account);
+		expense.setAmount(15_000);
+		Category category = addExpenseCategory();
+		expense.setCategory(category);
+		expense.setCurrency(Currency.BGN);
+		expense.setDate(LocalDate.now());
+		expense.setDescription(EXPENSE_DESCRIPTION_TEXT);
+		expense.setRepeatType(RepeatType.MONTHLY);
+		List<Tag> tags = addTagsToDB(FinanceOperationType.EXPENSE);
+		expense.setTags(tags);
 
 		return expense;
 	}
 
-	private List<Tag> addTagsToDB(FinanceOperationType forType) {
+	private Category addExpenseCategory() throws Exception {
+		int randNumber = (int) (Math.random() * RANDOM_NUMBERS_SIZE);
+		Category category = new Category(0, EXPENSE_CATEGORY + randNumber, FinanceOperationType.EXPENSE);
+		categoryDAO.addCategory(category);
+		
+		return category;
+	}
+	
+	private Category addIncomeCategory() throws Exception {
+		int randNumber = (int) (Math.random() * RANDOM_NUMBERS_SIZE);
+		Category category = new Category(0, INCOME_CATEGORY + randNumber, FinanceOperationType.INCOME);
+		categoryDAO.addCategory(category);
+		
+		return category;
+	}
+
+	private List<Tag> addTagsToDB(FinanceOperationType forType) throws Exception {
 		List<Tag> tags = new LinkedList<Tag>();
 		
 		for (int index = 0; index < TAGS_COUNT; index++) {
@@ -363,36 +372,26 @@ public class FinanceOperationDAOTests {
 		return tags;
 	}
 
-	private Account addAccountToDB() {
+	private Account addAccountToDB() throws Exception {
 		User user = addUserToDB();
 		Account account = new Account();
-
-		try {
-			account.setBalance(ACCOUNT_BALANCE);
-			account.setTitle(ACCOUNT_TITLE);
-			account.setUser(user);
-			accDAO.addAccount(account);
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
-		}
+		account.setBalance(ACCOUNT_BALANCE);
+		account.setTitle(ACCOUNT_TITLE);
+		account.setUser(user);
+		accDAO.addAccount(account);
 
 		return account;
 	}
 
-	private User addUserToDB() {
+	private User addUserToDB() throws Exception {
 		User user = new User();
-
-		try {
-			int randNumber = (int) (Math.random() * RANDOM_NUMBERS_SIZE);
-			user.setUsername("testusername" + randNumber);
-			user.setEmail("testemail" + randNumber + "@domain.asd");
-			user.setPassword("123456");
-			user.setCurrency(Currency.BGN);
-			int id = userDAO.addUser(user);
-			user.setId(id);
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
-		}
+		int randNumber = (int) (Math.random() * RANDOM_NUMBERS_SIZE);
+		user.setUsername("testusername" + randNumber);
+		user.setEmail("testemail" + randNumber + "@domain.asd");
+		user.setPassword("123456");
+		user.setCurrency(Currency.BGN);
+		int id = userDAO.addUser(user);
+		user.setId(id);
 
 		return user;
 	}
