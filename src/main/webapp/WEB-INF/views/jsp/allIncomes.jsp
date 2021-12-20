@@ -9,14 +9,15 @@
 <div id="container">
 	<div class="wrapper">
 		<div id="content">
-			<div class="month"> <h2>&lt; April &gt;</h2> </div>
-			<h2>BGN ${moneyToSpend} Left to spend</h2>
+			<div class="month">
+				<h2>&lt; April &gt;</h2>
+			</div>
 			<div class="ct-chart ct-perfect-fourth"></div>
 			<script src="js/chartist.js"></script>
 			<script>
 				var data = {
-						labels :<c:out value="${categories}" escapeXml="false"></c:out>,
-						series : <c:out value="${expensesAmounts}"></c:out>
+					labels : <c:out value="${categories}" escapeXml="false"></c:out>,
+					series : <c:out value="${incomesAmounts}"></c:out>
 				};
 
 				var options = {
@@ -43,8 +44,9 @@
 		<div id="column">
 			<div class="subnav">
 				<%@include file="partials/accountsSelect.jsp"%>
-				<c:forEach var="expense" items="${expenses}">				
-					<%@include file="partials/expenseListTemplate.jsp"%>
+				<a href="./addIncome" class="btn btn-lg btn-default">+ Add Income</a>
+				<c:forEach var="income" items="${incomes}">
+					<%@include file="partials/incomesListTemplate.jsp"%>
 				</c:forEach>
 			</div>
 		</div>

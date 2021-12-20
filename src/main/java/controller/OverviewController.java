@@ -57,7 +57,7 @@ public class OverviewController {
 			int year = LocalDate.now().getYear();
 			
 			if (session.getAttribute("year") != null) {
-				month = (int) session.getAttribute("year");
+				year = (int) session.getAttribute("year");
 			}
 			
 			List<Account> accounts = (List<Account>) accountDAO.getAllAccountsForUser(user);
@@ -95,6 +95,7 @@ public class OverviewController {
 			model.addAttribute("moneyToSpend", moneyToSpend);
 			model.addAttribute("categories", moneyByCategory.keySet());
 			model.addAttribute("expensesAmounts", moneyByCategory.values());
+			model.addAttribute("accounts", accounts);
 		} catch (DAOException e) {
 			e.printStackTrace();
 		}

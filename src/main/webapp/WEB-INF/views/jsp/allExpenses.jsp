@@ -10,7 +10,6 @@
 	<div class="wrapper">
 		<div id="content">
 			<div class="month"> <h2>&lt; April &gt;</h2> </div>
-			<h2>BGN ${moneyToSpend} Left to spend</h2>
 			<div class="ct-chart ct-perfect-fourth"></div>
 			<script src="js/chartist.js"></script>
 			<script>
@@ -43,8 +42,13 @@
 		<div id="column">
 			<div class="subnav">
 				<%@include file="partials/accountsSelect.jsp"%>
+				<a href="./addExpense" class="btn btn-lg btn-default">+ Add Expense</a>
 				<c:forEach var="expense" items="${expenses}">				
 					<%@include file="partials/expenseListTemplate.jsp"%>
+					<div class="operations">
+						<a href="./editExpense?id=${expense.id}" class="btn btn-info btn-xs">Edit</a> 
+						<a href="./deleteExpense?id=${expense.id}" class="btn btn-danger btn-xs">Delete</a>
+					</div>
 				</c:forEach>
 			</div>
 		</div>

@@ -5,21 +5,21 @@
 	<div>
 		<p>
 			<span class="date"> 
-				<jstl:out value="${expense.date}"></jstl:out>
+				<jstl:out value="${income.date}"></jstl:out>
 			</span> 
 			<span class="money-amount"> 
-				<jstl:out value="${expense.currency}"></jstl:out> 
-				<jstl:out value="${expense.amount / 100.0}"></jstl:out>
+				<jstl:out value="${income.currency}"></jstl:out> 
+				<jstl:out value="${income.amount / 100.0}"></jstl:out>
 			</span>
 		</p>
 	</div>
 	<div>
 		<p>
 			<span class="category"> 
-				<jstl:out value="${expense.category.categoryName}"></jstl:out>
+				<jstl:out value="${income.category.categoryName}"></jstl:out>
 			</span> 
 			<span class="tags">
-				<jstl:forEach var="tag" items="${expense.tags}">
+				<jstl:forEach var="tag" items="${income.tags}">
 					<jstl:out value="${tag.tagName}"></jstl:out>
 				</jstl:forEach>
 			</span>

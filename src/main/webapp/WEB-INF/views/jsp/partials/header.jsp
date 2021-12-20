@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
+<%@ page errorPage="./errorPage.jsp" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
@@ -10,8 +11,13 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>IT Talents - Finance Tracker</title>
 <link rel="stylesheet" href="css/layout.css" type="text/css" />
+<link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
 <sec:authorize access="isAuthenticated()">
-<link rel="stylesheet" href="css/chartist.css">
+<script src="./js/jquery-2.2.2.min.js" type="text/javascript"></script>
+<script src="./js/jquery-ui.min.js" type="text/javascript"></script>
+<script src="./js/custom.js" type="text/javascript"></script>
+<link rel="stylesheet" href="./css/jquery-ui.min.css">
+<link rel="stylesheet" href="./css/chartist.css">
 </sec:authorize>
 </head>
 <body id="top">
