@@ -9,13 +9,13 @@
 <div id="container">
 	<div class="wrapper">
 		<div id="content">
-			<form:form action="editExpense" commandName="expenseViewModel">
+			<form:form action="editIncome" commandName="incomeViewModel">
 				<fieldset>
-					<legend>Edit Expense: </legend>
+					<legend>Edit Income: </legend>
 					<table class="table">
 						<tr>
 							<td><label for="amount">Amount:</label></td>
-							<td><form:input style="width: 100px;" id="amount" path="amount" type="number" step="0.01" value="${expenseViewModel.amount}" /></td>
+							<td><form:input style="width: 100px;" id="amount" path="amount" type="number" step="0.01" value="${incomeViewModel.amount}" /></td>
 							<td><form:errors path="amount" cssClass="error" /></td>
 						</tr>
 						<tr>
@@ -47,7 +47,7 @@
 						</tr>
 						<tr>
 							<td><label for="date-picker">Date:</label></td>
-							<td><form:input id="date-picker" style="width: 100px;" path="date" value="${incomeViewModel.date}" /></td>
+							<td><form:input id="date-picker" style="width: 100px;" path="date" value="${expenseViewModel.date}" /></td>
 							<td><form:errors path="date" cssClass="error" /></td>
 						</tr>
 						<tr>
@@ -76,7 +76,7 @@
 						</tr>
 					</table>
 					<input type="submit" class="btn btn-primary btn-md" value="Edit" />
-					<form:hidden path="id" value="${expenseViewModel.id}" />
+					<form:hidden path="id" value="${incomeViewModel.id}" />
 				</fieldset>
 			</form:form>
 		</div>

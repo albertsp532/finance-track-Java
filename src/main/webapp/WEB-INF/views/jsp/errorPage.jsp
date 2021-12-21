@@ -5,7 +5,8 @@
 <div id="container">
 	<div class="wrapper">
 		<div id="content">
-			<h4 class="alert alert-danger">Error: ${errorMessage}</h4>
+			<h3 class="alert alert-danger">Well, this is embarrassing!</h3>
+			<h3 class="alert alert-danger">Something went wrong!</h3>
 		</div>
 		<br class="clear" />
 	</div>

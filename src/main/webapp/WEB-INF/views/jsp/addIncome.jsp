@@ -9,45 +9,44 @@
 <div id="container">
 	<div class="wrapper">
 		<div id="content">
-			<form:form action="editExpense" commandName="expenseViewModel">
+			<form:form action="addIncome" commandName="incomeViewModel">
 				<fieldset>
-					<legend>Edit Expense: </legend>
+					<legend>Add Income: </legend>
 					<table class="table">
 						<tr>
 							<td><label for="amount">Amount:</label></td>
-							<td><form:input style="width: 100px;" id="amount" path="amount" type="number" step="0.01" value="${expenseViewModel.amount}" /></td>
+							<td><form:input style="width: 100px;" id="amount"
+									path="amount" type="number" step="0.01" value="" /></td>
 							<td><form:errors path="amount" cssClass="error" /></td>
 						</tr>
 						<tr>
 							<td><label for="currency">Currency:</label></td>
-							<td>
-								<form:select id="currency" style="width: 100px; height: 25px;" path="currency">
+							<td><form:select id="currency"
+									style="width: 100px; height: 25px;" path="currency">
 									<form:options items="${allCurrencies}" />
-								</form:select>
-							</td>
+								</form:select></td>
 							<td><form:errors path="currency" cssClass="error" /></td>
 						</tr>
 						<tr>
 							<td><label for="account">For account:</label></td>
-							<td>
-								<form:select id="account" style="width: 100px; height: 25px;" path="account">
+							<td><form:select id="account"
+									style="width: 100px; height: 25px;" path="account">
 									<form:options items="${allAccounts}" />
-								</form:select>
-							</td>
+								</form:select></td>
 							<td><form:errors path="account" cssClass="error" /></td>
 						</tr>
 						<tr>
 							<td><label for="category">Category:</label></td>
-							<td>
-								<form:select id="category" style="width: 100px; height: 25px;" path="category">
+							<td><form:select id="category"
+									style="width: 100px; height: 25px;" path="category">
 									<form:options items="${allCategories}" />
-								</form:select>
-							</td>
+								</form:select></td>
 							<td><form:errors path="category" cssClass="error" /></td>
 						</tr>
 						<tr>
 							<td><label for="date-picker">Date:</label></td>
-							<td><form:input id="date-picker" style="width: 100px;" path="date" value="${incomeViewModel.date}" /></td>
+							<td><form:input id="date-picker" style="width: 100px;"
+									path="date" /></td>
 							<td><form:errors path="date" cssClass="error" /></td>
 						</tr>
 						<tr>
@@ -57,26 +56,22 @@
 						</tr>
 						<tr>
 							<td><label for="repeatType">Repeat:</label></td>
-							<td>
-								<form:select id="repeatType" style="width: 100px; height: 25px;" path="repeatType">
+							<td><form:select id="repeatType"
+									style="width: 100px; height: 25px;" path="repeatType">
 									<form:options items="${allRepeatTypes}" />
-								</form:select>
-							</td>
+								</form:select></td>
 							<td><form:errors path="repeatType" cssClass="error" /></td>
 						</tr>
 						<tr>
 							<td><label>Tags:</label></td>
-							<td>
-								<c:forEach var="tag" items="${allTags}">
+							<td><c:forEach var="tag" items="${allTags}">
 									<form:checkbox id="tag${tag}" path="tags" value="${tag}"></form:checkbox>
 									<label for="tag${tag}">${tag}</label>
-								</c:forEach>
-							</td>
+								</c:forEach></td>
 							<td><form:errors path="tags" cssClass="error" /></td>
 						</tr>
 					</table>
-					<input type="submit" class="btn btn-primary btn-md" value="Edit" />
-					<form:hidden path="id" value="${expenseViewModel.id}" />
+					<input type="submit" class="btn btn-primary btn-md" value="Add" />
 				</fieldset>
 			</form:form>
 		</div>

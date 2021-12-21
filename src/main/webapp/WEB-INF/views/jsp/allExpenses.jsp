@@ -13,43 +13,22 @@
 			<div class="ct-chart ct-perfect-fourth"></div>
 			<script src="js/chartist.js"></script>
 			<script>
-				var data = {
-						labels :<c:out value="${categories}" escapeXml="false"></c:out>,
-						series : <c:out value="${expensesAmounts}"></c:out>
-				};
-
-				var options = {
-					labelInterpolationFnc : function(value) {
-						return value[0]
-					}
-				};
-
-				var responsiveOptions = [ [ 'screen and (min-width: 640px)', {
-					chartPadding : 30,
-					labelOffset : 100,
-					labelDirection : 'explode',
-					labelInterpolationFnc : function(value) {
-						return value;
-					}
-				} ], [ 'screen and (min-width: 1024px)', {
-					labelOffset : 80,
-					chartPadding : 20
-				} ] ];
-
-				new Chartist.Pie('.ct-chart', data, options, responsiveOptions);
+				drawPieGraphic(<c:out value="${categories}" escapeXml="false"></c:out>, <c:out value="${expensesAmounts}"></c:out>);
 			</script>
 		</div>
 		<div id="column">
 			<div class="subnav">
 				<%@include file="partials/accountsSelect.jsp"%>
 				<a href="./addExpense" class="btn btn-lg btn-default">+ Add Expense</a>
-				<c:forEach var="expense" items="${expenses}">				
-					<%@include file="partials/expenseListTemplate.jsp"%>
-					<div class="operations">
-						<a href="./editExpense?id=${expense.id}" class="btn btn-info btn-xs">Edit</a> 
-						<a href="./deleteExpense?id=${expense.id}" class="btn btn-danger btn-xs">Delete</a>
-					</div>
-				</c:forEach>
+				<div id="expenses">
+					<c:forEach var="expense" items="${expenses}">				
+						<%@include file="partials/expenseListTemplate.jsp"%>
+						<div class="operations">
+							<a href="./editExpense?id=${expense.id}" class="btn btn-info btn-xs">Edit</a> 
+							<a href="./verifyDeleteExpense?id=${expense.id}" class="btn btn-danger btn-xs">Delete</a>
+						</div>
+					</c:forEach>
+				</div>
 			</div>
 		</div>
 		<br class="clear" />

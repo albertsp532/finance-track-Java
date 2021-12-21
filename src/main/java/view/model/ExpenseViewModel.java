@@ -15,6 +15,9 @@ public class ExpenseViewModel {
 	
 	@NotNull
 	private float amount;
+	
+	@NotNull
+	private float userCurrencyAmount;
 
 	@NotNull
 	private Currency currency;
@@ -28,7 +31,7 @@ public class ExpenseViewModel {
 	private String account;
 
 	private LocalDate date;
-
+	
 	@NotNull
 	@NotEmpty
 	private String description;
@@ -124,5 +127,13 @@ public class ExpenseViewModel {
 
 	public void setTags(Collection<String> tags) {
 		this.tags = tags;
+	}
+
+	public float getUserCurrencyAmount() {
+		return userCurrencyAmount;
+	}
+
+	public void setUserCurrencyAmount(float userCurrencyAmount) {
+		this.userCurrencyAmount = userCurrencyAmount;
 	}
 }
