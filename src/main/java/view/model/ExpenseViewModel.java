@@ -3,6 +3,7 @@ package view.model;
 import java.util.Collection;
 
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
 import model.Currency;
 import model.RepeatType;
@@ -17,10 +18,11 @@ public class ExpenseViewModel {
 	private float amount;
 	
 	@NotNull
+	private Currency currency;
+	
 	private float userCurrencyAmount;
 
-	@NotNull
-	private Currency currency;
+	private Currency userCurrency;
 
 	@NotNull
 	@NotEmpty
@@ -30,16 +32,14 @@ public class ExpenseViewModel {
 	@NotEmpty
 	private String account;
 
+	@NotNull
 	private LocalDate date;
 	
-	@NotNull
-	@NotEmpty
+	@Size(min=1)
 	private String description;
-
-	@NotNull
+	
 	private RepeatType repeatType;
-
-	@NotNull
+	
 	private Collection<String> tags;
 
 	public ExpenseViewModel() {}
@@ -135,5 +135,13 @@ public class ExpenseViewModel {
 
 	public void setUserCurrencyAmount(float userCurrencyAmount) {
 		this.userCurrencyAmount = userCurrencyAmount;
+	}
+
+	public Currency getUserCurrency() {
+		return userCurrency;
+	}
+
+	public void setUserCurrency(Currency userCurrency) {
+		this.userCurrency = userCurrency;
 	}
 }

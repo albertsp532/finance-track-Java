@@ -9,23 +9,28 @@
 <div id="container">
 	<div class="wrapper">
 		<div id="content">
-			<div class="month"> <h2>&lt; April &gt;</h2> </div>
-			<div class="ct-chart ct-perfect-fourth"></div>
-			<script src="js/chartist.js"></script>
+			<div class="month">
+				 <h2>
+				 	<a href="./previousMonth?view=allExpenses">&lt; </a>
+				 		 ${month}. ${year}
+				 	 <a href="./nextMonth?view=allExpenses">&gt;</a></h2> 
+			 </div>
+			<div id="chart" class="ct-chart ct-perfect-fourth"></div>
 			<script>
-				drawPieGraphic(<c:out value="${categories}" escapeXml="false"></c:out>, <c:out value="${expensesAmounts}"></c:out>);
+				var chartData = <c:out value="${chartData}" escapeXml="false"></c:out>;
+				draw3dDonut("expenses", chartData);
 			</script>
 		</div>
 		<div id="column">
 			<div class="subnav">
 				<%@include file="partials/accountsSelect.jsp"%>
-				<a href="./addExpense" class="btn btn-lg btn-default">+ Add Expense</a>
+				<a href="./addExpense" class="btn btn-lg btn-default"><spring:message code="expenses.addExpense" /></a>
 				<div id="expenses">
 					<c:forEach var="expense" items="${expenses}">				
 						<%@include file="partials/expenseListTemplate.jsp"%>
 						<div class="operations">
-							<a href="./editExpense?id=${expense.id}" class="btn btn-info btn-xs">Edit</a> 
-							<a href="./verifyDeleteExpense?id=${expense.id}" class="btn btn-danger btn-xs">Delete</a>
+							<a href="./editExpense?id=${expense.id}" class="btn btn-info btn-xs"><spring:message code="button.edit" /></a> 
+							<a href="./verifyDeleteExpense?id=${expense.id}" class="btn btn-danger btn-xs"><spring:message code="button.delete"/></a>
 						</div>
 					</c:forEach>
 				</div>

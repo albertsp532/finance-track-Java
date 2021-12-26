@@ -11,6 +11,15 @@ import java.util.Map;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
+import model.Account;
+import model.Category;
+import model.Currency;
+import model.FinanceOperationType;
+import model.Income;
+import model.RepeatType;
+import model.Tag;
+import model.User;
+
 import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -22,23 +31,15 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import dao.DAOException;
+import utils.CurrencyConverter;
+import utils.MoneyOperations;
+import view.model.IncomeViewModel;
 import dao.IAccountDAO;
 import dao.ICategoryDAO;
 import dao.IFinanceOperationDAO;
 import dao.ITagDAO;
 import dao.IUserDAO;
-import model.Account;
-import model.Category;
-import model.Currency;
-import model.FinanceOperationType;
-import model.Income;
-import model.RepeatType;
-import model.Tag;
-import model.User;
-import utils.CurrencyChange;
-import utils.MoneyOperations;
-import view.model.IncomeViewModel;
+import exceptions.DAOException;
 
 @Controller
 public class IncomesController {
@@ -79,8 +80,8 @@ public class IncomesController {
 					if (in.getDate().getMonthOfYear() == month && in.getDate().getYear() == year) {
 						IncomeViewModel incomeViewModel = incomeToIncomeViewModel(in);
 						if (in.getCurrency() != user.getCurrency()) {
-							int result = CurrencyChange.convertToThisCurrency(in.getAmount(),
-											in.getCurrency(), user.getCurrency());
+							int result = CurrencyConverter.convertToThisCurrency(in.getAmount(), in.getCurrency(),
+									user.getCurrency());
 							float userCurrencyAmount = MoneyOperations.amountPerHendred(result);
 							incomeViewModel.setUserCurrencyAmount(userCurrencyAmount);
 						}
@@ -95,19 +96,29 @@ public class IncomesController {
 					if (amountsByCategory.containsKey(category)) {
 						oldAmount = amountsByCategory.get(category);
 					}
-					amountsByCategory.put(category, oldAmount + MoneyOperations.moneyToCents(incomeViewModel.getAmount()));
+					amountsByCategory.put(category,
+							oldAmount + MoneyOperations.moneyToCents(incomeViewModel.getAmount()));
 				}
 			}
 
+			List<List<String>> chartData = new LinkedList<List<String>>();
+
+			for (String category : amountsByCategory.keySet()) {
+				int amount = amountsByCategory.get(category);
+				List<String> dataRow = new LinkedList<String>();
+				dataRow.add(category);
+				dataRow.add(String.valueOf(amount));
+				chartData.add(dataRow);
+			}
+
 			Collections.sort(incomeViews, (i1, i2) -> i1.getDate().getDayOfMonth() - i2.getDate().getDayOfMonth());
-			
-			model.addAttribute("categories", amountsByCategory.keySet());			
-			model.addAttribute("incomesAmounts", amountsByCategory.values());			
-			model.addAttribute("incomes", incomeViews);			
+
+			model.addAttribute("chartData", chartData);
+			model.addAttribute("incomes", incomeViews);
 			model.addAttribute("accounts", accounts);
-			
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 
 		return "allIncomes";
@@ -119,9 +130,9 @@ public class IncomesController {
 			Currency[] allCurrencies = Currency.values();
 			RepeatType[] allRepeatTypes = RepeatType.values();
 			User user = getUserFromSession(session);
-			
-			List<String> allCategories = getAllCategoriesForIncomes();			
-			List<String> allAccounts = getAllAccountsForUser(user);			
+
+			List<String> allCategories = getAllCategoriesForIncomes();
+			List<String> allAccounts = getAllAccountsForUser(user);
 			List<String> allTags = getAllTagsForIncomes();
 
 			model.addAttribute("allCurrencies", allCurrencies);
@@ -132,119 +143,132 @@ public class IncomesController {
 			model.addAttribute("incomeViewModel", new IncomeViewModel());
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		return "addIncome";
 	}
 
 	@RequestMapping(value = "/addIncome", method = RequestMethod.POST)
 	public String addIncome(@ModelAttribute("incomeViewModel") @Valid IncomeViewModel incomeViewModel,
-			BindingResult result, Model model, HttpSession session) {
-		
-		if (result.hasErrors()) {
-			return "addAExpense";
-		}
-		
+			BindingResult result, Model model, HttpSession session) throws DAOException {
+
 		try {
+			if (result.hasErrors()) {
+				String username = (String) session.getAttribute("username");
+				User user = userDao.getUserByUsername(username);
+				List<String> allCategories = getAllCategoriesForIncomes();
+				List<String> allAccounts = getAllAccountsForUser(user);
+				List<String> allTags = getAllTagsForIncomes();
+
+				model.addAttribute("allCategories", allCategories);
+				model.addAttribute("allAccounts", allAccounts);
+				model.addAttribute("allTags", allTags);
+				model.addAttribute("incomeViewModel", incomeViewModel);
+				return "addIncome";
+			}
+
 			User user = getUserFromSession(session);
 			Income income = incomeViewModelToIncome(incomeViewModel, user);
 			foDao.add(income);
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 
 		return "redirect:allIncomes";
 	}
-	
+
 	@RequestMapping(value = "/editIncome", method = RequestMethod.GET)
-	public String showEditIncomePage(@ModelAttribute(value="id") int id, 
-			HttpSession session, Model model) {
+	public String showEditIncomePage(@ModelAttribute(value = "id") int id, HttpSession session, Model model) {
 		try {
 			User user = getUserFromSession(session);
-			Income income = foDao.getIncomeById(id);			
-			
-			List<String> allCategories = getAllCategoriesForIncomes();			
+			Income income = foDao.getIncomeById(id);
+
+			List<String> allCategories = getAllCategoriesForIncomes();
 			List<String> allAccounts = getAllAccountsForUser(user);
 			List<String> allTags = getAllTagsForIncomes();
-			
+
 			if (foDao.checkUserHasFinanceOperation(income, user)) {
 				IncomeViewModel incomeViewModel = incomeToIncomeViewModel(income);
 				model.addAttribute("incomeViewModel", incomeViewModel);
 				model.addAttribute("allCategories", allCategories);
 				model.addAttribute("allAccounts", allAccounts);
-				model.addAttribute("allTags", allTags);				
+				model.addAttribute("allTags", allTags);
 			} else {
 				throw new Exception("Invalid Income!");
 			}
-		} catch(Exception e) {
-			model.addAttribute("errorMessage", e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
 			return "forward:error";
 		}
-		
+
 		return "editIncome";
-	}	
-	
+	}
+
 	@RequestMapping(value = "/editIncome", method = RequestMethod.POST)
-	public String editIncome (@ModelAttribute("incomeViewModel") @Valid IncomeViewModel incomeViewModel, BindingResult result,
-			Model model, HttpSession session) throws DAOException {
-		
+	public String editIncome(@ModelAttribute("incomeViewModel") @Valid IncomeViewModel incomeViewModel,
+			BindingResult result, Model model, HttpSession session) throws DAOException {
+
 		if (result.hasErrors()) {
-			User user = getUserFromSession(session);
-			List<String> allCategories = getAllCategoriesForIncomes();			
+			String username = (String) session.getAttribute("username");
+			User user = userDao.getUserByUsername(username);
+			List<String> allCategories = getAllCategoriesForIncomes();
 			List<String> allAccounts = getAllAccountsForUser(user);
 			List<String> allTags = getAllTagsForIncomes();
-			
+
 			model.addAttribute("allCategories", allCategories);
 			model.addAttribute("allAccounts", allAccounts);
 			model.addAttribute("allTags", allTags);
-			return "editIncome";
+			return "addIncome";
 		}
-		
+
 		try {
 			User user = getUserFromSession(session);
-			Income income = incomeViewModelToIncome(incomeViewModel, user);			
-			
+			Income income = incomeViewModelToIncome(incomeViewModel, user);
+
 			if (foDao.checkUserHasFinanceOperation(income, user)) {
 				foDao.update(income);
-			}
-			else {
+			} else {
 				throw new Exception("Invalid Income!");
 			}
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		return "redirect:allIncomes";
 	}
-	
+
 	@RequestMapping(value = "/verifyDeleteIncome", method = RequestMethod.GET)
-	public String verifyDeleteIncome(@ModelAttribute(value="id") int id, Model model, HttpSession session) {
-		try {			
+	public String verifyDeleteIncome(@ModelAttribute(value = "id") int id, Model model, HttpSession session) {
+		try {
 			Income income = foDao.getIncomeById(id);
 			model.addAttribute("incomeDate", income.getDate());
 			model.addAttribute("incomeAmount", MoneyOperations.amountPerHendred(income.getAmount()));
 			model.addAttribute("incomeId", id);
-		} catch (Exception e) {			
+		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		return "verifyDeleteIncome";
-		
+
 	}
-	
+
 	@RequestMapping(value = "/deleteIncome", method = RequestMethod.GET)
-	public String deleteIncome(@ModelAttribute(value="id") int id, Model model, HttpSession session) {
+	public String deleteIncome(@ModelAttribute(value = "id") int id, Model model, HttpSession session) {
 		try {
 			User user = getUserFromSession(session);
 			Income income = foDao.getIncomeById(id);
 			if (foDao.checkUserHasFinanceOperation(income, user)) {
 				foDao.delete(income);
-			}
-			else {
+			} else {
 				throw new Exception("Invalid income for deletion!");
-			}			
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
-		
+
 		return "redirect:/allIncomes";
 	}
 
@@ -259,7 +283,7 @@ public class IncomesController {
 
 		return user;
 	}
-	
+
 	private Income incomeViewModelToIncome(IncomeViewModel incomeViewModel, User user) throws Exception {
 		Income income = new Income();
 		income.setId(incomeViewModel.getId());
@@ -286,7 +310,7 @@ public class IncomesController {
 
 		return income;
 	}
-	
+
 	private IncomeViewModel incomeToIncomeViewModel(Income income) throws Exception {
 		IncomeViewModel incomeViewModel = new IncomeViewModel();
 		incomeViewModel.setId(income.getId());
@@ -299,18 +323,18 @@ public class IncomesController {
 		incomeViewModel.setDescription(income.getDescription());
 		incomeViewModel.setRepeatType(income.getRepeatType());
 		List<String> tags = new LinkedList<String>();
-		
+
 		if (income.getTags() != null) {
 			for (Tag tag : income.getTags()) {
 				tags.add(tag.getTagName());
 			}
 		}
-		
+
 		incomeViewModel.setTags(tags);
-		
+
 		return incomeViewModel;
 	}
-	
+
 	private List<String> getAllTagsForIncomes() throws DAOException {
 		List<Tag> tags = (List<Tag>) tagDao.getAllTagsByTypeFor(FinanceOperationType.INCOME);
 		List<String> allTags = new LinkedList<String>();
@@ -322,7 +346,7 @@ public class IncomesController {
 		}
 		return allTags;
 	}
-	
+
 	private List<String> getAllCategoriesForIncomes() throws DAOException {
 		Collection<Category> categories = categoryDao.getAllCategoriesForFOType(FinanceOperationType.INCOME);
 		List<String> allCategories = new LinkedList<String>();
@@ -330,10 +354,10 @@ public class IncomesController {
 		for (Category category : categories) {
 			allCategories.add(category.getCategoryName());
 		}
-		
+
 		return allCategories;
 	}
-	
+
 	private List<String> getAllAccountsForUser(User user) throws DAOException {
 		List<Account> userAccounts = (List<Account>) accountDao.getAllAccountsForUser(user);
 		List<String> allAccounts = new LinkedList<String>();
@@ -341,7 +365,7 @@ public class IncomesController {
 		for (Account acc : userAccounts) {
 			allAccounts.add(acc.getTitle());
 		}
-		
+
 		return allAccounts;
 	}
 

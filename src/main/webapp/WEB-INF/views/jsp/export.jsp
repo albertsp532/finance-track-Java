@@ -8,18 +8,8 @@
 <%@include file="partials/header.jsp"%>
 <div id="container">
 	<div class="wrapper">
-		<div id="content">
-			<div>
-				<h3>
-					Are you sure you want to delete account ${accountTitle}?
-				</h3>
-			</div>
-			<div>
-				<a href="./deleteAccount?id=${accountId}" class="btn btn-sm btn-default">Yes</a>
-				<a href="./allAccounts" class="btn btn-sm btn-default">No</a>
-			</div>
-		</div>
-		<br class="clear" />
+		<h2><spring:message code="export.message"/> </h2>
+		<a href="./export/pdf" class="btn btn-lg btn-default"><spring:message code="export.toPDFMessage"/></a>
 	</div>
 </div>
 <%@include file="partials/footer.jsp"%>

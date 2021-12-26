@@ -10,46 +10,28 @@
 	<div class="wrapper">
 		<div id="content">
 			<div class="month">
-				<h2>&lt; April &gt;</h2>
-			</div>
-			<div class="ct-chart ct-perfect-fourth"></div>
-			<script src="js/chartist.js"></script>
+				 <h2>
+				 	<a href="./previousMonth?view=allIncomes">&lt; </a>
+				 		 ${month}. ${year}
+				 	 <a href="./nextMonth?view=allIncomes">&gt;</a></h2> 
+			 </div>
+			<div id="chart" class="ct-chart ct-perfect-fourth"></div>
 			<script>
-				var data = {
-					labels : <c:out value="${categories}" escapeXml="false"></c:out>,
-					series : <c:out value="${incomesAmounts}"></c:out>
-				};
-
-				var options = {
-					labelInterpolationFnc : function(value) {
-						return value[0]
-					}
-				};
-
-				var responsiveOptions = [ [ 'screen and (min-width: 640px)', {
-					chartPadding : 30,
-					labelOffset : 100,
-					labelDirection : 'explode',
-					labelInterpolationFnc : function(value) {
-						return value;
-					}
-				} ], [ 'screen and (min-width: 1024px)', {
-					labelOffset : 80,
-					chartPadding : 20
-				} ] ];
-
-				new Chartist.Pie('.ct-chart', data, options, responsiveOptions);
+				var chartData = <c:out value="${chartData}" escapeXml="false"></c:out>;
+				draw3dDonut("expenses", chartData);
 			</script>
 		</div>
 		<div id="column">
 			<div class="subnav">
 				<%@include file="partials/accountsSelect.jsp"%>
-				<a href="./addIncome" class="btn btn-lg btn-default">+ Add Income</a>
-				<c:forEach var="income" items="${incomes}">
-					<%@include file="partials/incomesListTemplate.jsp"%>
-					<a href="./editIncome?id=${income.id}" class="btn btn-info btn-xs">Edit</a> 
-					<a href="./verifyDeleteIncome?id=${income.id}" class="btn btn-danger btn-xs">Delete</a>
-				</c:forEach>
+				<a href="./addIncome" class="btn btn-lg btn-default"><spring:message code="incomes.addIncome" /></a>
+				<div id="incomes">
+					<c:forEach var="income" items="${incomes}">
+						<%@include file="partials/incomesListTemplate.jsp"%>
+						<a href="./editIncome?id=${income.id}" class="btn btn-info btn-xs"><spring:message code="button.edit" /></a> 
+						<a href="./verifyDeleteIncome?id=${income.id}" class="btn btn-danger btn-xs"><spring:message code="button.delete"/></a>
+					</c:forEach>
+				</div>
 			</div>
 		</div>
 		<br class="clear" />

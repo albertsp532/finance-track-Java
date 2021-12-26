@@ -20,8 +20,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import view.model.ChangeCurrencyViewModel;
 import view.model.ChangeEmailViewModel;
 import view.model.ChangePasswordViewModel;
-import dao.DAOException;
 import dao.IUserDAO;
+import exceptions.DAOException;
 
 @Controller
 public class ProfileController {
@@ -42,6 +42,7 @@ public class ProfileController {
 			model.addAttribute("currencies", Currency.values());
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		
 		return "profile";
@@ -56,6 +57,7 @@ public class ProfileController {
 			userDAO.updateUser(user);
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		
 		return "redirect:profile";
@@ -82,6 +84,7 @@ public class ProfileController {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		
 		return "redirect:profile";
@@ -108,6 +111,7 @@ public class ProfileController {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		
 		return "redirect:profile";

@@ -22,13 +22,13 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import utils.CurrencyChange;
+import utils.CurrencyConverter;
 import utils.MoneyOperations;
 import view.model.BudgetViewModel;
-import dao.DAOException;
 import dao.IBudgetDAO;
 import dao.IUserDAO;
 import exceptions.APIException;
+import exceptions.DAOException;
 
 @Controller
 public class BudgetController {
@@ -46,6 +46,7 @@ public class BudgetController {
 			model.addAttribute("allBudgets", budgetsViewModel);
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		
 		return "allBudgets";
@@ -60,6 +61,7 @@ public class BudgetController {
 			model.addAttribute("budgetViewModel", new BudgetViewModel());
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		
 		return "addBudget";
@@ -75,6 +77,7 @@ public class BudgetController {
 			budgetDAO.add(budget);
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		
 		return "redirect:allBudgets";
@@ -116,6 +119,7 @@ public class BudgetController {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		
 		return "redirect:allBudgets";
@@ -129,6 +133,7 @@ public class BudgetController {
 			model.addAttribute("budgetViewModel", budgetViewModel);
 		} catch (Exception e) {			
 			e.printStackTrace();
+			return "forward:error";
 		}
 		
 		return "verifyDeleteBudget";
@@ -147,6 +152,7 @@ public class BudgetController {
 			}			
 		} catch (Exception e) {
 			e.printStackTrace();
+			return "forward:error";
 		}
 		
 		return "redirect:/allBudgets";

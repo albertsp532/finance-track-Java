@@ -1,16 +1,22 @@
 package controller;
 
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import javax.servlet.http.HttpSession;
 
 import model.Account;
-import model.Currency;
 import model.Expense;
+import model.Income;
 import model.Tag;
 import model.User;
 
@@ -23,13 +29,16 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import utils.CurrencyChange;
+import utils.CurrencyConverter;
 import utils.MoneyOperations;
 import view.model.ExpenseViewModel;
-import dao.DAOException;
+
+import com.google.gson.Gson;
+
 import dao.IAccountDAO;
 import dao.IFinanceOperationDAO;
 import dao.IUserDAO;
+import exceptions.DAOException;
 
 @Controller
 public class OverviewController {
@@ -68,7 +77,11 @@ public class OverviewController {
 			
 			List<Account> accounts = (List<Account>) accountDAO.getAllAccountsForUser(user);
 			List<ExpenseViewModel> expenseViews = new LinkedList<ExpenseViewModel>();
-			Map<String, Integer> moneyByCategory = new HashMap<String, Integer>();
+			Map<String, Integer> moneyByCategory = new TreeMap<String, Integer>();
+			List<Map<String, Object>> chartData = new LinkedList<Map<String, Object>>();
+			Map<String, Float> expensesByDate = new TreeMap<String, Float>();
+			Map<String, Float> incomesByDate = new TreeMap<String, Float>();
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-M-d");
 			int amountToSpend = 0;
 			
 			for (Account acc : accounts) {
@@ -78,43 +91,106 @@ public class OverviewController {
 					if (expense.getDate().getMonthOfYear() == month && 
 								expense.getDate().getYear() == year) {
 						
-						ExpenseViewModel expenseViewModel = expenseToExpenseViewModel(expense);						
+						float userCurrencyAmount = MoneyOperations.amountPerHendred(expense.getAmount());
+						ExpenseViewModel expenseViewModel = expenseToExpenseViewModel(expense);
+						
 						if (expense.getCurrency() != user.getCurrency()) {
-							int result = CurrencyChange.convertToThisCurrency(expense.getAmount(),
+							int result = CurrencyConverter.convertToThisCurrency(expense.getAmount(),
 									expense.getCurrency(), user.getCurrency());
-							float userCurrencyAmount = MoneyOperations.amountPerHendred(result);
-							expenseViewModel.setUserCurrencyAmount(userCurrencyAmount);
+							userCurrencyAmount = MoneyOperations.amountPerHendred(result);
 						}
+						
+						expenseViewModel.setUserCurrencyAmount(userCurrencyAmount);
 						expenseViews.add(expenseViewModel);
+						
+						Date date = expense.getDate().toDateTimeAtStartOfDay().toDate();
+						java.time.LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+						String dateKey = localDate.format(formatter);
+						
+						if (!expensesByDate.containsKey(dateKey)) {
+							expensesByDate.put(dateKey, 0.0f);
+						}
+						
+						expensesByDate.put(dateKey, expensesByDate.get(dateKey) + userCurrencyAmount);
 					}
 				}
 				
 				amountToSpend += acc.getBalance();
 				
-				for (ExpenseViewModel expenseViewModel : expenseViews) {
-					amountToSpend -= (MoneyOperations.moneyToCents(expenseViewModel.getAmount()));
-					String category = "'" + expenseViewModel.getCategory() + "'";
-					int oldAmount = 0;
-					
-					if (moneyByCategory.containsKey(category)) {
-						oldAmount = moneyByCategory.get(category);
+				List<Income> accIncomes = (List<Income>) financeOperationDAO.getAllIncomesByAccount(acc);
+				
+				for (Income income : accIncomes) {
+					if (income.getDate().getMonthOfYear() == month && 
+							income.getDate().getYear() == year) {
+						float userCurrencyAmount = MoneyOperations.amountPerHendred(income.getAmount());
+						
+						if (income.getCurrency() != user.getCurrency()) {
+							int result = CurrencyConverter.convertToThisCurrency(income.getAmount(),
+									income.getCurrency(), user.getCurrency());
+							userCurrencyAmount = MoneyOperations.amountPerHendred(result);
+						}
+						
+						Date date = income.getDate().toDateTimeAtStartOfDay().toDate();
+						java.time.LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+						String dateKey = localDate.format(formatter);
+						
+						if (!incomesByDate.containsKey(dateKey)) {
+							incomesByDate.put(dateKey, 0.0f);
+						}
+						System.out.println(dateKey);
+						incomesByDate.put(dateKey, incomesByDate.get(dateKey) + userCurrencyAmount);
 					}
-					
-					moneyByCategory.put(category, oldAmount + MoneyOperations.moneyToCents(expenseViewModel.getAmount()));
 				}
 			}
+			
+			for (ExpenseViewModel expenseViewModel : expenseViews) {
+				amountToSpend -= (MoneyOperations.moneyToCents(expenseViewModel.getAmount()));
+			}
+			
+			YearMonth yearMonthObject = YearMonth.of(year, month);
+			int daysInMonth = yearMonthObject.lengthOfMonth();
+			List<String> dates = new ArrayList<String>(daysInMonth);
+			List<Float> expensesInMonth = new ArrayList<Float>(daysInMonth);
+			List<Float> incomesInMonth = new ArrayList<Float>(daysInMonth);
+			
+			for (int day = 1; day <= daysInMonth; day++) {
+				String date = year + "-" + month + "-" + day;
+				dates.add(date);
+				
+				if (expensesByDate.containsKey(date)) {
+					expensesInMonth.add(expensesByDate.get(date));
+				} else {
+					expensesInMonth.add(0.0f);
+				}
+				
+				if (incomesByDate.containsKey(date)) {
+					incomesInMonth.add(incomesByDate.get(date));
+				} else {
+					incomesInMonth.add(0.0f);
+				}
+			}
+			
+			Map<String, Object> incomesChartData = new HashMap<String, Object>();
+			incomesChartData.put("name", "Incomes");
+			incomesChartData.put("data", incomesInMonth);
+			chartData.add(incomesChartData);
+			Map<String, Object> expensesChartData = new HashMap<String, Object>();
+			expensesChartData.put("name", "Expenses");
+			expensesChartData.put("data", expensesInMonth);
+			chartData.add(expensesChartData);
+			
 			Collections.sort(expenseViews, (e1, e2) -> e1.getDate().getDayOfMonth()-e2.getDate().getDayOfMonth());
 			float moneyToSpend = MoneyOperations.amountPerHendred(amountToSpend);
 			model.addAttribute("expenses", expenseViews);		
 			model.addAttribute("moneyToSpend", moneyToSpend);
-			model.addAttribute("categories", moneyByCategory.keySet());
-			model.addAttribute("expensesAmounts", moneyByCategory.values());
 			model.addAttribute("accounts", accounts);
-			System.out.println(accounts);
+			model.addAttribute("chartData", new Gson().toJson(chartData));
+			model.addAttribute("dates", new Gson().toJson(dates));
 		} catch (DAOException e) {
 			e.printStackTrace();
 		} catch (Exception e) {			
 			e.printStackTrace();
+			return "forward:error";
 		}
 		
 		return "overview";

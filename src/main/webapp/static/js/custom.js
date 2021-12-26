@@ -3,91 +3,174 @@ $(document).ready(function() {
     $('.date-picker').datepicker();
 });
 
-function loadExpenses() {	
-	var accountName = $("#account").val();		
-		
+function loadFinanceOperationsData(financeOperationType) {
+	var accountName = $("#account").val();
+	var elementId = "#" + financeOperationType;
+	var url = "./accounts";
+
+	if (accountName != "") {
+		url += "/" + accountName;
+	}
+
 	$.ajax({
-	    url: './accounts/'+accountName,
+	    url: url,
 	    type: 'GET',
 	    success: function(data) {
-	    	$("#expenses").empty();
-	    	var labels = [];
-	    	var series = [];
-	    	
-	        $.each(data, function(index, expense) {
-	        	var index = $.inArray(expense.category.categoryName, labels);
-	        	
+	    	$(elementId).empty();
+	    	var chartData = [];
+
+	        $.each(data, function(index, financeOperation) {
+	        	var index = -1;
+
+	        	for(var i = 0, len = chartData.length; i < len; i++ ) {
+	        	    if(chartData[i][0] === financeOperation.category) {
+	        	    	index = i;
+	        	        break;
+	        	    }
+	        	}
+
 	        	if (index >= 0) {
-	        		series[index] += expense.amount;
-				} else {
-		        	labels.push(expense.category.categoryName);
-		        	series.push(expense.amount);
-				}
-	        	
-	        	var tags = "";
-	        	
-	    		$.each(expense.tags, function(index, tag) {
-	    			tags += " " + tag.tagName;	
-	    		});
-	    		
-				$("<div>").appendTo("#expenses").html("" +
-					"<div class='finance-info bordered'>" +
-						"<div>" +
-							"<p>" +
-								"<span class='date'>" + 
-									expense.date.year + "-" + 
-									("0" + expense.date.monthOfYear).slice(-2)  + "-" +
-									("0" + expense.date.dayOfMonth).slice(-2)  + 
-								"</span>" + 
-								"<span class='money-amount'>" + 
-									expense.currency + " " + (expense.amount / 100.0).toFixed(2) +
-								"</span>" +
-							"</p>" +
-						"</div>" +
-						"<div>" +
-							"<p>" +
-								"<span class='category'>" + expense.category.categoryName + "</span>" + 
-								"<span class='tags'>" + tags + "</span>" +
-							"</p>" +
-						"</div>" +
-					"</div>" +
-					"<div class='operations'>" +
-						"<a href='./editExpense?id=" + expense.id + "' class='btn btn-info btn-xs'>Edit</a>" + 
-						"<a href='./verifyDeleteExpense?id=" + expense.id + "' class='btn btn-danger btn-xs'>Delete</a>" +
-					"</div>");
+	        		 chartData[index][1] += financeOperation.amount;
+	    		} else {
+	    			chartData.push([financeOperation.category, financeOperation.amount]);
+	    		}
+
+	        	var html = generateHtml(financeOperation);
+				$("<div>").appendTo(elementId).html(html);
 	        });
-	        
-	        drawPieGraphic(labels, series);
-	    }		
+
+	    	sortByCategory(chartData);
+	    	draw3dDonut(financeOperationType, chartData);
+	    }
 	});
 }
 
-function drawPieGraphic(labelsData, seriesData) {
-	var data = {
-			labels : labelsData,
-			series : seriesData
-	};
-	
-	console.log(labelsData);
-    console.log(seriesData);
+function generateHtml(financeOperation) {
+	var tags = "";
 
-	var options = {
-		labelInterpolationFnc : function(value) {
-			return value[0]
-		}
-	};
+	$.each(financeOperation.tags, function(index, tag) {
+		tags += " " + tag;
+	});
 
-	var responsiveOptions = [ [ 'screen and (min-width: 640px)', {
-		chartPadding : 30,
-		labelOffset : 100,
-		labelDirection : 'explode',
-		labelInterpolationFnc : function(value) {
-			return value;
-		}
-	} ], [ 'screen and (min-width: 1024px)', {
-		labelOffset : 80,
-		chartPadding : 20
-	} ] ];
+	var html = "" +
+	"<div class='finance-info bordered'>" +
+		"<div>" +
+			"<p>" +
+				"<span class='date'>" +
+				financeOperation.date.year + "-" +
+					("0" + financeOperation.date.monthOfYear).slice(-2)  + "-" +
+					("0" + financeOperation.date.dayOfMonth).slice(-2)  +
+				"</span>" +
+				"<span class='money-amount'>" +
+				financeOperation.currency + " " + (financeOperation.amount).toFixed(2) +
+				"</span>" +
+			"</p>" +
+		"</div>" +
+		"<div>" +
+			"<p>" +
+				"<span class='category'>" + financeOperation.category + "</span>" +
+				"<span class='tags'>" + tags + "</span>" +
+			"</p>" +
+		"</div>" +
+	"</div>" +
+	"<div class='operations'>" +
+		"<a href='./editExpense?id=" + financeOperation.id + "' class='btn btn-info btn-xs'>Edit</a>" +
+		"<a href='./verifyDeleteExpense?id=" + financeOperation.id + "' class='btn btn-danger btn-xs'>Delete</a>" +
+	"</div>";
 
-	new Chartist.Pie('.ct-chart', data, options, responsiveOptions);
+	return html;
 }
+
+function sortByCategory(data) {
+	data.sort(function(a, b) {
+        return ((a[0] < b[0]) ? -1 : ((a[0] == b[0]) ? 0 : 1));
+    });
+}
+
+function draw3dDonut (financeOperationType, data) {
+    $('#chart').highcharts({
+        chart: {
+            type: 'pie',
+            options3d: {
+                enabled: true,
+                alpha: 45
+            }
+        },
+        title: {
+            text: 'Monthly overview of ' + financeOperationType + ' by category.'
+        },
+        subtitle: {
+            text: ''
+        },
+        plotOptions: {
+            pie: {
+            	allowPointSelect: true,
+                cursor: 'pointer',
+                innerSize: 100,
+                depth: 65
+            }
+        },
+        series: [{
+            name: financeOperationType + ' amount',
+            data: data
+        }]
+    });
+}
+
+function draw3dGroupedColumn(cdata, categories) {
+	var chart = new Highcharts.Chart({
+        chart: {
+            renderTo: 'chart',
+            type: 'column',
+            margin: 75,
+            options3d: {
+                enabled: true,
+                alpha: 15,
+                beta: 15,
+                depth: 50,
+                viewDistance: 15
+            }
+        },
+        xAxis: {
+            categories: categories
+        },
+        yAxis: {
+            allowDecimals: false,
+            min: 0,
+            title: {
+                text: 'Income / Expense'
+            }
+        },
+        title: {
+            text: 'Monthly overview of incomes and expenses'
+        },
+        subtitle: {
+            text: ''
+        },
+        plotOptions: {
+            column: {
+                depth: 25
+            }
+        },
+        series: cdata
+    });
+}
+
+function reloadTags(category) {
+	$.ajax({
+	    url: "./" + category + "/tags",
+	    type: 'GET',
+	    success: function(data) {
+	    	$("#tags").empty();
+
+	    	$.each(data, function(index, tag) {
+	    		var html = ' <input id="tagelectricity" name="tags" type="checkbox" value="' + tag + '"> ';
+	    		html += ' <input type="hidden" name="_tags" value="on"> ';
+	    		html += ' <label for="tag' + tag + '">' + tag + '</label> ';
+	    		$("#tags").append(html);
+	    	});
+	    }
+	});
+}
+
+
