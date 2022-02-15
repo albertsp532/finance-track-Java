@@ -1,10 +1,10 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
-<%--@ page errorPage="./errorPage.jsp" --%>
+<%@ page errorPage="./errorPage.jsp" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
-<%@ taglib prefix="c" uri="http://java.sun.com/jstl/core_rt" %>	
+<%@ taglib prefix="c" uri="http://java.sun.com/jstl/core_rt" %>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -16,9 +16,9 @@
 <script src="./js/jquery-2.2.2.min.js" type="text/javascript"></script>
 <script src="./js/jquery-ui.min.js" type="text/javascript"></script>
 
-<script src="https://code.highcharts.com/highcharts.js"></script>
-<script src="https://code.highcharts.com/highcharts-3d.js"></script>
-<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="./js/highcharts.js"></script>
+<script src="./js/highcharts-3d.js"></script>
+<script src="./js/exporting.js"></script>
 
 <script src="./js/custom.js" type="text/javascript"></script>
 <link rel="stylesheet" href="./css/jquery-ui.min.css">
@@ -40,15 +40,11 @@
 				</h1>
 				<p>IT Talents Season 5 Final Project</p>
 			</div>
-			<div class="fl_right">
-				<a href="#"><img src="" alt="" /></a>
+			<div id="international" class="fl_right">
+				<a href="?language=en"><img width="30px" height="15px" src="./images/gb.png" alt="English language" /></a>
+				<a href="?language=bg"><img width="30px" height="15px" src="./images/bg.png" alt="Bulgarian language" /></a>
 			</div>
 			<br class="clear" />
-			<div id="international">
-				<a href = "?language=en"><img src="./images/gb.png"></a>
-				<a href = "?language=bg"><img src="./images/bg.png"></a>
-				
-			</div>			
 		</div>
 	</div>
 	<sec:authorize access="isAuthenticated()">

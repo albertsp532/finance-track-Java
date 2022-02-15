@@ -30,13 +30,13 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import utils.CurrencyConverter;
 import utils.MoneyOperations;
-import view.model.CategoryViewModel;
 import view.model.ExpenseViewModel;
 import dao.IAccountDAO;
 import dao.ICategoryDAO;
 import dao.IFinanceOperationDAO;
 import dao.ITagDAO;
 import dao.IUserDAO;
+import exceptions.APIException;
 import exceptions.DAOException;
 
 @Controller
@@ -60,66 +60,71 @@ public class ExpensesController {
 			List<Account> accounts = (List<Account>) accountDAO.getAllAccountsForUser(user);
 			Map<String, Integer> amountsByCategory = new TreeMap<String, Integer>();
 			List<ExpenseViewModel> expenseViews = new LinkedList<ExpenseViewModel>();
-			int month = LocalDate.now().getMonthOfYear();
-			int year = LocalDate.now().getYear();
 
-			if (session.getAttribute("month") != null) {
-				month = (int) session.getAttribute("month");
-			}
-
-			if (session.getAttribute("year") != null) {
-				year = (int) session.getAttribute("year");
-			}
+			addMonthAndYearToSession(session);
+			int month = (int) session.getAttribute("month");
+			int year = (int) session.getAttribute("year");
 
 			for (Account acc : accounts) {
 				List<Expense> accExpenses = (List<Expense>) financeOperationDAO.getAllExpensesByAccount(acc);
-
-				for (Expense expense : accExpenses) {
-					if (expense.getDate().getMonthOfYear() == month && expense.getDate().getYear() == year) {
-						ExpenseViewModel expenseViewModel = expenseToExpenseViewModel(expense);
-						if (expense.getCurrency() != user.getCurrency()) {
-							int result = CurrencyConverter.convertToThisCurrency(expense.getAmount(),
-										expense.getCurrency(), user.getCurrency());
-							float userCurrencyAmount = MoneyOperations.amountPerHendred(result);
-							expenseViewModel.setUserCurrencyAmount(userCurrencyAmount);
-						}
-						expenseViews.add(expenseViewModel);
-					}
-				}
+				addAndCalculateExpensesForMonth(user, expenseViews, month, year, accExpenses);
 			}
 
-			for (ExpenseViewModel expenseViewModel : expenseViews) {
-				String category = "'" + expenseViewModel.getCategory() + "'";
-				int oldAmount = 0;
-
-				if (amountsByCategory.containsKey(category)) {
-					oldAmount = amountsByCategory.get(category);
-				}
-
-				amountsByCategory.put(category, oldAmount + MoneyOperations.moneyToCents(expenseViewModel.getAmount()));
-			}
-
+			calculateAmountsByCategory(amountsByCategory, expenseViews);
 			List<List<String>> chartData = new LinkedList<List<String>>();
-
-			for (String category : amountsByCategory.keySet()) {
-				int amount = amountsByCategory.get(category);
-				List<String> dataRow = new LinkedList<String>();
-				dataRow.add(category);
-				dataRow.add(String.valueOf(amount));
-				chartData.add(dataRow);
-			}
-
+			addChartData(amountsByCategory, chartData);
 			Collections.sort(expenseViews, (e1, e2) -> e1.getDate().getDayOfMonth() - e2.getDate().getDayOfMonth());
-
 			model.addAttribute("chartData", chartData);
 			model.addAttribute("expenses", expenseViews);
 			model.addAttribute("accounts", accounts);
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 
 		return "allExpenses";
+	}
+
+	private void addChartData(Map<String, Integer> amountsByCategory, List<List<String>> chartData) {
+		for (String category : amountsByCategory.keySet()) {
+			int amount = amountsByCategory.get(category);
+			List<String> dataRow = new LinkedList<String>();
+			dataRow.add(category);
+			dataRow.add(String.valueOf(amount));
+			chartData.add(dataRow);
+		}
+	}
+
+	private void calculateAmountsByCategory(Map<String, Integer> amountsByCategory, List<ExpenseViewModel> expenseViews) {
+		for (ExpenseViewModel expenseViewModel : expenseViews) {
+			String category = "'" + expenseViewModel.getCategory() + "'";
+			int oldAmount = 0;
+
+			if (amountsByCategory.containsKey(category)) {
+				oldAmount = amountsByCategory.get(category);
+			}
+
+			amountsByCategory.put(category, oldAmount + MoneyOperations.moneyToCents(expenseViewModel.getAmount()));
+		}
+	}
+
+	private void addAndCalculateExpensesForMonth(User user, List<ExpenseViewModel> expenseViews, int month, int year, List<Expense> accExpenses) throws Exception, APIException {
+		for (Expense expense : accExpenses) {
+			if (expense.getDate().getMonthOfYear() == month && expense.getDate().getYear() == year) {
+				ExpenseViewModel expenseViewModel = expenseToExpenseViewModel(expense);
+				float userCurrencyAmount = expenseViewModel.getAmount();
+
+				if (expense.getCurrency() != user.getCurrency()) {
+					int result = CurrencyConverter.convertToThisCurrency(expense.getAmount(),
+								expense.getCurrency(), user.getCurrency());
+					userCurrencyAmount = MoneyOperations.amountPerHendred(result);
+				}
+
+				expenseViewModel.setUserCurrencyAmount(userCurrencyAmount);
+				expenseViewModel.setUserCurrency(user.getCurrency());
+				expenseViews.add(expenseViewModel);
+			}
+		}
 	}
 
 	@RequestMapping(value = "/addExpense", method = RequestMethod.GET)
@@ -130,12 +135,17 @@ public class ExpensesController {
 			String username = (String) session.getAttribute("username");
 			User user = userDAO.getUserByUsername(username);
 
-			List<CategoryViewModel> allCategories = getAllCategoriesForExpenses();
+			List<String> allCategories = getAllCategoriesForExpenses();
 			List<String> allAccounts = getAllAccountsForUser(user);
 			List<String> tags = new LinkedList<String>();
 
 			if (allCategories != null && allCategories.size() > 0) {
-				tags.addAll(allCategories.get(0).getTags());
+				Category category = categoryDAO.getCategoryByName(allCategories.get(0));
+				Collection<Tag> tagsForCategory = tagDAO.getTagsForCategory(category);
+
+				for (Tag tag : tagsForCategory) {
+					tags.add(tag.getTagName());
+				}
 			}
 
 			model.addAttribute("allCurrencies", allCurrencies);
@@ -146,7 +156,7 @@ public class ExpensesController {
 			model.addAttribute("expenseViewModel", new ExpenseViewModel());
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 
 		return "addExpense";
@@ -159,13 +169,22 @@ public class ExpensesController {
 		if (result.hasErrors()) {
 			String username = (String) session.getAttribute("username");
 			User user = userDAO.getUserByUsername(username);
-			List<CategoryViewModel> allCategories = getAllCategoriesForExpenses();
+			List<String> allCategories = getAllCategoriesForExpenses();
 			List<String> allAccounts = getAllAccountsForUser(user);
-			List<String> allTags = getAllTagsForExpenses();
+			List<String> tags = new LinkedList<String>();
+
+			if (allCategories != null && allCategories.size() > 0) {
+				Category category = categoryDAO.getCategoryByName(allCategories.get(0));
+				Collection<Tag> tagsForCategory = tagDAO.getTagsForCategory(category);
+
+				for (Tag tag : tagsForCategory) {
+					tags.add(tag.getTagName());
+				}
+			}
 
 			model.addAttribute("allCategories", allCategories);
 			model.addAttribute("allAccounts", allAccounts);
-			model.addAttribute("allTags", allTags);
+			model.addAttribute("tags", tags);
 			return "addExpense";
 		}
 
@@ -176,7 +195,7 @@ public class ExpensesController {
 			financeOperationDAO.add(expense);
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 
 		return "redirect:allExpenses";
@@ -190,22 +209,31 @@ public class ExpensesController {
 			User user = userDAO.getUserByUsername(username);
 			Expense expense = financeOperationDAO.getExpenseById(id);
 
-			List<CategoryViewModel> allCategories = getAllCategoriesForExpenses();
+			List<String> allCategories = getAllCategoriesForExpenses();
 			List<String> allAccounts = getAllAccountsForUser(user);
-			List<String> allTags = getAllTagsForExpenses();
+			List<String> tags = new LinkedList<String>();
+
+			if (allCategories != null && allCategories.size() > 0) {
+				Category category = categoryDAO.getCategoryByName(allCategories.get(0));
+				Collection<Tag> tagsForCategory = tagDAO.getTagsForCategory(category);
+
+				for (Tag tag : tagsForCategory) {
+					tags.add(tag.getTagName());
+				}
+			}
 
 			if (financeOperationDAO.checkUserHasFinanceOperation(expense, user)) {
 				ExpenseViewModel expenseViewModel = expenseToExpenseViewModel(expense);
 				model.addAttribute("expenseViewModel", expenseViewModel);
 				model.addAttribute("allCategories", allCategories);
 				model.addAttribute("allAccounts", allAccounts);
-				model.addAttribute("allTags", allTags);
+				model.addAttribute("tags", tags);
 			} else {
 				throw new Exception("Invalid expense!");
 			}
 		} catch(Exception e) {
 			model.addAttribute("errorMessage", e.getMessage());
-			return "forward:error";
+			return "redirect:error";
 		}
 
 		return "editExpense";
@@ -218,14 +246,22 @@ public class ExpensesController {
 		User user = userDAO.getUserByUsername(username);
 
 		if (result.hasErrors()) {
-
-			List<CategoryViewModel> allCategories = getAllCategoriesForExpenses();
+			List<String> allCategories = getAllCategoriesForExpenses();
 			List<String> allAccounts = getAllAccountsForUser(user);
-			List<String> allTags = getAllTagsForExpenses();
+			List<String> tags = new LinkedList<String>();
+
+			if (allCategories != null && allCategories.size() > 0) {
+				Category category = categoryDAO.getCategoryByName(allCategories.get(0));
+				Collection<Tag> tagsForCategory = tagDAO.getTagsForCategory(category);
+
+				for (Tag tag : tagsForCategory) {
+					tags.add(tag.getTagName());
+				}
+			}
 
 			model.addAttribute("allCategories", allCategories);
 			model.addAttribute("allAccounts", allAccounts);
-			model.addAttribute("allTags", allTags);
+			model.addAttribute("tags", tags);
 			return "editExpense";
 		}
 
@@ -241,7 +277,7 @@ public class ExpensesController {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 		return "redirect:allExpenses";
 	}
@@ -255,7 +291,7 @@ public class ExpensesController {
 			model.addAttribute("expenseId", id);
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 		return "verifyDeleteExpense";
 
@@ -275,7 +311,7 @@ public class ExpensesController {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 
 		return "redirect:/allExpenses";
@@ -332,38 +368,17 @@ public class ExpensesController {
 		return expense;
 	}
 
-	private List<CategoryViewModel> getAllCategoriesForExpenses() throws DAOException {
+	private List<String> getAllCategoriesForExpenses() throws DAOException {
 		Collection<Category> categories = categoryDAO.getAllCategoriesForFOType(FinanceOperationType.EXPENSE);
-		List<CategoryViewModel> allCategories = new LinkedList<CategoryViewModel>();
+		List<String> allCategories = new LinkedList<String>();
 
-		for (Category category : categories) {
-			CategoryViewModel viewModel = categoryToCategoryViewModel(category);
-			allCategories.add(viewModel);
+		if (categories != null) {
+			for (Category category : categories) {
+				allCategories.add(category.getCategoryName());
+			}
 		}
 
 		return allCategories;
-	}
-
-	private CategoryViewModel categoryToCategoryViewModel(Category category) {
-		CategoryViewModel viewModel = new CategoryViewModel();
-
-		if (category != null) {
-			viewModel.setId(category.getId());
-			viewModel.setCategoryName(category.getCategoryName());
-			viewModel.setForType(category.getForType());
-			Collection<String> tags = new LinkedList<String>();
-			Collection<Tag> categoryTags = category.getTags();
-
-			if (categoryTags != null) {
-				for (Tag tag : categoryTags) {
-					tags.add(tag.getTagName());
-				}
-			}
-
-			viewModel.setTags(tags);
-		}
-
-		return viewModel;
 	}
 
 	private List<String> getAllAccountsForUser(User user) throws DAOException {
@@ -387,6 +402,16 @@ public class ExpensesController {
 				allTags.add(tag.getTagName());
 			}
 		}
+
 		return allTags;
+	}
+
+	private void addMonthAndYearToSession(HttpSession session){
+		if (session.getAttribute("month") == null || session.getAttribute("year") == null) {
+			int month = LocalDate.now().getMonthOfYear();
+			session.setAttribute("month", month);
+			int year = LocalDate.now().getYear();
+			session.setAttribute("year", year);
+		}
 	}
 }

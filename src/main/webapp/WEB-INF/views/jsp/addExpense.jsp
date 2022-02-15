@@ -28,7 +28,7 @@
 							<td><form:errors path="currency" cssClass="error" /></td>
 						</tr>
 						<tr>
-							<td><label for="account"><label for="currency"><spring:message code="forAccount.message"/></label></td>
+							<td><label for="account"><spring:message code="forAccount.message"/></label></td>
 							<td>
 								<form:select id="account" style="width: 100px; height: 25px;" path="account">
 									<form:options items="${allAccounts}" />
@@ -39,8 +39,10 @@
 						<tr>
 							<td><label for="category"><spring:message code="category.message"/></label></td>
 							<td>
-								<form:select id="category" style="width: 100px; height: 25px;" path="category">
-									<form:options items="${allCategories}" />
+								<form:select id="category" style="width: 100px; height: 25px;" path="category" onchange="reloadTags(this.value)">
+									<c:forEach var="category" items="${allCategories}">
+										<form:option value="${category}" />
+									</c:forEach>
 								</form:select>
 							</td>
 							<td><form:errors path="category" cssClass="error" /></td>
@@ -64,15 +66,6 @@
 							<td><label for="description"><spring:message code="descriptionMessage"/></label></td>
 							<td><form:textarea id="description" path="description"></form:textarea></td>
 							<td><form:errors path="description" cssClass="error" /></td>
-						</tr>
-						<tr>
-							<td><label for="repeatType"><spring:message code="repeatMessage"/></label></td>
-							<td>
-								<form:select id="repeatType" style="width: 100px; height: 25px;" path="repeatType">
-									<form:options items="${allRepeatTypes}" />
-								</form:select>
-							</td>
-							<td><form:errors path="repeatType" cssClass="error" /></td>
 						</tr>
 					</table>
 					<input type="submit" class="btn btn-primary btn-md" value="<spring:message code="button.add"/>" />

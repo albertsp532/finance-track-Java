@@ -10,6 +10,7 @@ import model.Account;
 import model.Category;
 import model.Expense;
 import model.FinanceOperationType;
+import model.Income;
 import model.Tag;
 import model.User;
 
@@ -21,8 +22,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import utils.CurrencyConverter;
 import utils.MoneyOperations;
 import view.model.ExpenseViewModel;
+import view.model.IncomeViewModel;
 import dao.IAccountDAO;
 import dao.ICategoryDAO;
 import dao.IFinanceOperationDAO;
@@ -43,9 +46,10 @@ public class AccountsRestController {
 	@Autowired
 	private ICategoryDAO categoryDAO;
 
-	@RequestMapping(value = "/accounts", method = RequestMethod.GET)
+	@RequestMapping(value = "/accounts/expenses", method = RequestMethod.GET)
 	public List<ExpenseViewModel> getExpensesForAllAccounts(HttpSession session) {
 		List<ExpenseViewModel> result = new LinkedList<ExpenseViewModel>();
+
 		try {
 			User user = getUserFromSession(session);
 			int month = (int) session.getAttribute("month");
@@ -54,9 +58,8 @@ public class AccountsRestController {
 			List<Account> accounts = (List<Account>) accDao.getAllAccountsForUser(user);
 
 			for (Account acc : accounts) {
-				result.addAll(getExpensesByAccount(month, year, acc));
+				result.addAll(getExpensesByAccount(month, year, acc, user));
 			}
-
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -66,7 +69,7 @@ public class AccountsRestController {
 		return result;
 	}
 
-	@RequestMapping(value = "/accounts/{accountName}", method = RequestMethod.GET)
+	@RequestMapping(value = "/accounts/{accountName}/expenses", method = RequestMethod.GET)
 	public List<ExpenseViewModel> getExpensesForAccount(@PathVariable("accountName") String accountName,
 			HttpSession session) {
 		List<ExpenseViewModel> result = new LinkedList<ExpenseViewModel>();
@@ -77,8 +80,7 @@ public class AccountsRestController {
 			int year = (int) session.getAttribute("year");
 
 			Account account = accDao.getAccountForUserByName(accountName, user);
-			result = getExpensesByAccount(month, year, account);
-
+			result = getExpensesByAccount(month, year, account, user);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -87,14 +89,93 @@ public class AccountsRestController {
 		return result;
 	}
 
-	private List<ExpenseViewModel> getExpensesByAccount(int month, int year, Account acc) throws Exception {
+	@RequestMapping(value = "/accounts/incomes", method = RequestMethod.GET)
+	public List<IncomeViewModel> getIncomesForAllAccounts(HttpSession session) {
+		List<IncomeViewModel> result = new LinkedList<IncomeViewModel>();
+
+		try {
+			User user = getUserFromSession(session);
+			int month = (int) session.getAttribute("month");
+			int year = (int) session.getAttribute("year");
+
+			List<Account> accounts = (List<Account>) accDao.getAllAccountsForUser(user);
+
+			for (Account acc : accounts) {
+				result.addAll(getIncomesByAccount(month, year, acc, user));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Collections.sort(result, (i1, i2) -> i1.getDate().getDayOfMonth() - i2.getDate().getDayOfMonth());
+
+		return result;
+	}
+
+	@RequestMapping(value = "/accounts/{accountName}/incomes", method = RequestMethod.GET)
+	public List<IncomeViewModel> getIncomesForAccount(@PathVariable("accountName") String accountName,
+			HttpSession session) {
+		List<IncomeViewModel> result = new LinkedList<IncomeViewModel>();
+
+		try {
+			User user = getUserFromSession(session);
+			int month = (int) session.getAttribute("month");
+			int year = (int) session.getAttribute("year");
+
+			Account account = accDao.getAccountForUserByName(accountName, user);
+			result = getIncomesByAccount(month, year, account, user);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Collections.sort(result, (i1, i2) -> i1.getDate().getDayOfMonth() - i2.getDate().getDayOfMonth());
+
+		return result;
+	}
+
+	private List<ExpenseViewModel> getExpensesByAccount(int month, int year, Account acc, User user) throws Exception {
 		List<ExpenseViewModel> result = new LinkedList<ExpenseViewModel>();
 		List<Expense> accExpenses = (List<Expense>) foDao.getAllExpensesByAccount(acc);
 
 		for (Expense expense : accExpenses) {
 			if (expense.getDate().getMonthOfYear() == month && expense.getDate().getYear() == year) {
 				ExpenseViewModel expenseViewModel = expenseToExpenseViewModel(expense);
+				float userCurrencyAmount = expenseViewModel.getAmount();
+
+				if (expense.getCurrency() != user.getCurrency()) {
+					int amount = CurrencyConverter.convertToThisCurrency(expense.getAmount(),
+								expense.getCurrency(), user.getCurrency());
+					userCurrencyAmount = MoneyOperations.amountPerHendred(amount);
+				}
+
+				expenseViewModel.setUserCurrencyAmount(userCurrencyAmount);
+				expenseViewModel.setUserCurrency(user.getCurrency());
 				result.add(expenseViewModel);
+			}
+		}
+
+		return result;
+	}
+
+	private List<IncomeViewModel> getIncomesByAccount(int month, int year, Account acc, User user) throws Exception {
+		List<IncomeViewModel> result = new LinkedList<IncomeViewModel>();
+		List<Income> accIncomes = (List<Income>) foDao.getAllIncomesByAccount(acc);
+
+		for (Income income : accIncomes) {
+			if (income.getDate().getMonthOfYear() == month && income.getDate().getYear() == year) {
+				IncomeViewModel incomeViewModel = incomeToIncomeViewModel(income);
+				float userCurrencyAmount = incomeViewModel.getAmount();
+
+				if (income.getCurrency() != user.getCurrency()) {
+					int amount = CurrencyConverter.convertToThisCurrency(income.getAmount(),
+							income.getCurrency(), user.getCurrency());
+					userCurrencyAmount = MoneyOperations.amountPerHendred(amount);
+				}
+
+				incomeViewModel.setUserCurrencyAmount(userCurrencyAmount);
+				incomeViewModel.setUserCurrency(user.getCurrency());
+				result.add(incomeViewModel);
 			}
 		}
 
@@ -162,5 +243,56 @@ public class AccountsRestController {
 		expense.setTags(tags);
 
 		return expense;
+	}
+
+	private IncomeViewModel incomeToIncomeViewModel(Income income) throws Exception {
+		IncomeViewModel incomeViewModel = new IncomeViewModel();
+		incomeViewModel.setId(income.getId());
+		incomeViewModel.setAmount(MoneyOperations.amountPerHendred(income.getAmount()));
+		incomeViewModel.setUserCurrencyAmount(MoneyOperations.amountPerHendred(income.getAmount()));
+		incomeViewModel.setAccount(income.getAccount().getTitle());
+		incomeViewModel.setCategory(income.getCategory().getCategoryName());
+		incomeViewModel.setCurrency(income.getCurrency());
+		incomeViewModel.setDate(income.getDate());
+		incomeViewModel.setDescription(income.getDescription());
+		incomeViewModel.setRepeatType(income.getRepeatType());
+		List<String> tags = new LinkedList<String>();
+
+		if (income.getTags() != null) {
+			for (Tag tag : income.getTags()) {
+				tags.add(tag.getTagName());
+			}
+		}
+
+		incomeViewModel.setTags(tags);
+
+		return incomeViewModel;
+	}
+
+	private Income incomeViewModelToIncome(IncomeViewModel incomeViewModel, User user) throws Exception {
+		Income income = new Income();
+		income.setId(incomeViewModel.getId());
+		income.setAmount(MoneyOperations.moneyToCents(incomeViewModel.getAmount()));
+		income.setCurrency(incomeViewModel.getCurrency());
+		income.setDate(incomeViewModel.getDate());
+		income.setDescription(incomeViewModel.getDescription());
+		income.setRepeatType(incomeViewModel.getRepeatType());
+		income.setFinanceOperationType(FinanceOperationType.INCOME);
+		Account account = accDao.getAccountForUserByName(incomeViewModel.getAccount(), user);
+		income.setAccount(account);
+		Category category = categoryDAO.getCategoryByName(incomeViewModel.getCategory());
+		income.setCategory(category);
+		List<Tag> tags = new LinkedList<Tag>();
+
+		if (incomeViewModel.getTags() != null) {
+			for (String tagName : incomeViewModel.getTags()) {
+				Tag tag = tagDAO.getTagByTagname(tagName);
+				tags.add(tag);
+			}
+		}
+
+		income.setTags(tags);
+
+		return income;
 	}
 }

@@ -2,6 +2,10 @@ package controller;
 
 import javax.validation.Valid;
 
+import model.Account;
+import model.Currency;
+import model.User;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -11,13 +15,10 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import view.model.UserViewModel;
 import dao.IAccountDAO;
 import dao.IUserDAO;
 import exceptions.DuplicateUserException;
-import model.Account;
-import model.Currency;
-import model.User;
-import view.model.UserViewModel;
 
 @Controller
 public class SignUpController {
@@ -42,7 +43,6 @@ public class SignUpController {
 	public String signUp(@ModelAttribute("userViewModel") @Valid UserViewModel userViewModel, BindingResult result,
 			Model model) {
 
-		System.out.println(userViewModel.getUsername());
 		if (result.hasErrors()) {
 			return "signUp";
 		}
@@ -68,9 +68,9 @@ public class SignUpController {
 			int userID = userDao.addUser(userForDB);
 			userForDB.setId(userID);
 		} catch (DuplicateUserException e) {
-			model.addAttribute("signUpError", e.getMessage());			
+			model.addAttribute("signUpError", e.getMessage());
 			e.printStackTrace();
-			return "signUp";			
+			return "signUp";
 		} catch (Exception e) {
 			model.addAttribute("signUpError", e.getMessage());
 			e.printStackTrace();
@@ -83,7 +83,7 @@ public class SignUpController {
 			defaultUserAccount.setTitle(DEFAULT_STARTING_ACCOUNT_NAME);
 			defaultUserAccount.setBalance(DEFAULT_STARTING_ACCOUNT_BALANCE);
 
-			accountDao.addAccount(defaultUserAccount);		
+			accountDao.addAccount(defaultUserAccount);
 		} catch (Exception e) {
 			model.addAttribute("signUpError", e.getMessage());
 			e.printStackTrace();
@@ -100,7 +100,7 @@ public class SignUpController {
 			boolean hasDigit = pass.matches(".*\\d+.*");
 			if (hasDigit && hasLowercase && hasUppercase) {
 				return true;
-			}			
+			}
 		}
 		return false;
 	}

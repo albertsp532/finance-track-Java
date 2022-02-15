@@ -39,6 +39,7 @@ import dao.ICategoryDAO;
 import dao.IFinanceOperationDAO;
 import dao.ITagDAO;
 import dao.IUserDAO;
+import exceptions.APIException;
 import exceptions.DAOException;
 
 @Controller
@@ -62,66 +63,70 @@ public class IncomesController {
 			List<Account> accounts = (List<Account>) accountDao.getAllAccountsForUser(user);
 			List<IncomeViewModel> incomeViews = new ArrayList<IncomeViewModel>();
 			Map<String, Integer> amountsByCategory = new HashMap<String, Integer>();
-			int month = LocalDate.now().getMonthOfYear();
-			int year = LocalDate.now().getYear();
 
-			if (session.getAttribute("month") != null) {
-				month = (int) session.getAttribute("month");
-			}
-
-			if (session.getAttribute("year") != null) {
-				year = (int) session.getAttribute("year");
-			}
+			addMonthAndYearToSession(session);
+			int month = (int) session.getAttribute("month");
+			int year = (int) session.getAttribute("year");
 
 			for (Account acc : accounts) {
 				List<Income> accIncomes = (List<Income>) foDao.getAllIncomesByAccount(acc);
-
-				for (Income in : accIncomes) {
-					if (in.getDate().getMonthOfYear() == month && in.getDate().getYear() == year) {
-						IncomeViewModel incomeViewModel = incomeToIncomeViewModel(in);
-						if (in.getCurrency() != user.getCurrency()) {
-							int result = CurrencyConverter.convertToThisCurrency(in.getAmount(), in.getCurrency(),
-									user.getCurrency());
-							float userCurrencyAmount = MoneyOperations.amountPerHendred(result);
-							incomeViewModel.setUserCurrencyAmount(userCurrencyAmount);
-						}
-						incomeViews.add(incomeViewModel);
-					}
-				}
-
-				for (IncomeViewModel incomeViewModel : incomeViews) {
-					String category = "'" + incomeViewModel.getCategory() + "'";
-					int oldAmount = 0;
-
-					if (amountsByCategory.containsKey(category)) {
-						oldAmount = amountsByCategory.get(category);
-					}
-					amountsByCategory.put(category,
-							oldAmount + MoneyOperations.moneyToCents(incomeViewModel.getAmount()));
-				}
+				addAndCalculateIncomeForMonth(user, incomeViews, month, year, accIncomes);
+				calculateAmountsByCategory(incomeViews, amountsByCategory);
 			}
 
 			List<List<String>> chartData = new LinkedList<List<String>>();
-
-			for (String category : amountsByCategory.keySet()) {
-				int amount = amountsByCategory.get(category);
-				List<String> dataRow = new LinkedList<String>();
-				dataRow.add(category);
-				dataRow.add(String.valueOf(amount));
-				chartData.add(dataRow);
-			}
-
+			addChartData(amountsByCategory, chartData);
 			Collections.sort(incomeViews, (i1, i2) -> i1.getDate().getDayOfMonth() - i2.getDate().getDayOfMonth());
-
 			model.addAttribute("chartData", chartData);
 			model.addAttribute("incomes", incomeViews);
 			model.addAttribute("accounts", accounts);
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 
 		return "allIncomes";
+	}
+
+	private void addChartData(Map<String, Integer> amountsByCategory, List<List<String>> chartData) {
+		for (String category : amountsByCategory.keySet()) {
+			int amount = amountsByCategory.get(category);
+			List<String> dataRow = new LinkedList<String>();
+			dataRow.add(category);
+			dataRow.add(String.valueOf(amount));
+			chartData.add(dataRow);
+		}
+	}
+
+	private void calculateAmountsByCategory(List<IncomeViewModel> incomeViews, Map<String, Integer> amountsByCategory) {
+		for (IncomeViewModel incomeViewModel : incomeViews) {
+			String category = "'" + incomeViewModel.getCategory() + "'";
+			int oldAmount = 0;
+
+			if (amountsByCategory.containsKey(category)) {
+				oldAmount = amountsByCategory.get(category);
+			}
+			amountsByCategory.put(category,
+					oldAmount + MoneyOperations.moneyToCents(incomeViewModel.getAmount()));
+		}
+	}
+
+	private void addAndCalculateIncomeForMonth(User user, List<IncomeViewModel> incomeViews, int month, int year, List<Income> accIncomes) throws Exception, APIException {
+		for (Income in : accIncomes) {
+			if (in.getDate().getMonthOfYear() == month && in.getDate().getYear() == year) {
+				IncomeViewModel incomeViewModel = incomeToIncomeViewModel(in);
+
+				if (in.getCurrency() != user.getCurrency()) {
+					int result = CurrencyConverter.convertToThisCurrency(in.getAmount(), in.getCurrency(),
+							user.getCurrency());
+					float userCurrencyAmount = MoneyOperations.amountPerHendred(result);
+					incomeViewModel.setUserCurrencyAmount(userCurrencyAmount);
+					incomeViewModel.setUserCurrency(user.getCurrency());
+				}
+
+				incomeViews.add(incomeViewModel);
+			}
+		}
 	}
 
 	@RequestMapping(value = "/addIncome", method = RequestMethod.GET)
@@ -133,17 +138,26 @@ public class IncomesController {
 
 			List<String> allCategories = getAllCategoriesForIncomes();
 			List<String> allAccounts = getAllAccountsForUser(user);
-			List<String> allTags = getAllTagsForIncomes();
+			List<String> tags = new LinkedList<String>();
+
+			if (allCategories != null && allCategories.size() > 0) {
+				Category category = categoryDao.getCategoryByName(allCategories.get(0));
+				Collection<Tag> tagsForCategory = tagDao.getTagsForCategory(category);
+
+				for (Tag tag : tagsForCategory) {
+					tags.add(tag.getTagName());
+				}
+			}
 
 			model.addAttribute("allCurrencies", allCurrencies);
 			model.addAttribute("allRepeatTypes", allRepeatTypes);
 			model.addAttribute("allCategories", allCategories);
 			model.addAttribute("allAccounts", allAccounts);
-			model.addAttribute("allTags", allTags);
+			model.addAttribute("tags", tags);
 			model.addAttribute("incomeViewModel", new IncomeViewModel());
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 		return "addIncome";
 	}
@@ -158,11 +172,20 @@ public class IncomesController {
 				User user = userDao.getUserByUsername(username);
 				List<String> allCategories = getAllCategoriesForIncomes();
 				List<String> allAccounts = getAllAccountsForUser(user);
-				List<String> allTags = getAllTagsForIncomes();
+				List<String> tags = new LinkedList<String>();
+
+				if (allCategories != null && allCategories.size() > 0) {
+					Category category = categoryDao.getCategoryByName(allCategories.get(0));
+					Collection<Tag> tagsForCategory = tagDao.getTagsForCategory(category);
+
+					for (Tag tag : tagsForCategory) {
+						tags.add(tag.getTagName());
+					}
+				}
 
 				model.addAttribute("allCategories", allCategories);
 				model.addAttribute("allAccounts", allAccounts);
-				model.addAttribute("allTags", allTags);
+				model.addAttribute("tags", tags);
 				model.addAttribute("incomeViewModel", incomeViewModel);
 				return "addIncome";
 			}
@@ -172,7 +195,7 @@ public class IncomesController {
 			foDao.add(income);
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 
 		return "redirect:allIncomes";
@@ -186,20 +209,29 @@ public class IncomesController {
 
 			List<String> allCategories = getAllCategoriesForIncomes();
 			List<String> allAccounts = getAllAccountsForUser(user);
-			List<String> allTags = getAllTagsForIncomes();
+			List<String> tags = new LinkedList<String>();
+
+			if (allCategories != null && allCategories.size() > 0) {
+				Category category = categoryDao.getCategoryByName(allCategories.get(0));
+				Collection<Tag> tagsForCategory = tagDao.getTagsForCategory(category);
+
+				for (Tag tag : tagsForCategory) {
+					tags.add(tag.getTagName());
+				}
+			}
 
 			if (foDao.checkUserHasFinanceOperation(income, user)) {
 				IncomeViewModel incomeViewModel = incomeToIncomeViewModel(income);
 				model.addAttribute("incomeViewModel", incomeViewModel);
 				model.addAttribute("allCategories", allCategories);
 				model.addAttribute("allAccounts", allAccounts);
-				model.addAttribute("allTags", allTags);
+				model.addAttribute("tags", tags);
 			} else {
 				throw new Exception("Invalid Income!");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 
 		return "editIncome";
@@ -214,11 +246,20 @@ public class IncomesController {
 			User user = userDao.getUserByUsername(username);
 			List<String> allCategories = getAllCategoriesForIncomes();
 			List<String> allAccounts = getAllAccountsForUser(user);
-			List<String> allTags = getAllTagsForIncomes();
+			List<String> tags = new LinkedList<String>();
+
+			if (allCategories != null && allCategories.size() > 0) {
+				Category category = categoryDao.getCategoryByName(allCategories.get(0));
+				Collection<Tag> tagsForCategory = tagDao.getTagsForCategory(category);
+
+				for (Tag tag : tagsForCategory) {
+					tags.add(tag.getTagName());
+				}
+			}
 
 			model.addAttribute("allCategories", allCategories);
 			model.addAttribute("allAccounts", allAccounts);
-			model.addAttribute("allTags", allTags);
+			model.addAttribute("tags", tags);
 			return "addIncome";
 		}
 
@@ -234,7 +275,7 @@ public class IncomesController {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 		return "redirect:allIncomes";
 	}
@@ -266,7 +307,7 @@ public class IncomesController {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			return "forward:error";
+			return "redirect:error";
 		}
 
 		return "redirect:/allIncomes";
@@ -351,8 +392,10 @@ public class IncomesController {
 		Collection<Category> categories = categoryDao.getAllCategoriesForFOType(FinanceOperationType.INCOME);
 		List<String> allCategories = new LinkedList<String>();
 
-		for (Category category : categories) {
-			allCategories.add(category.getCategoryName());
+		if (categories != null) {
+			for (Category category : categories) {
+				allCategories.add(category.getCategoryName());
+			}
 		}
 
 		return allCategories;
@@ -369,4 +412,13 @@ public class IncomesController {
 		return allAccounts;
 	}
 
+	private void addMonthAndYearToSession(HttpSession session) {
+		if (session.getAttribute("month") == null || session.getAttribute("year") == null) {
+			int month = LocalDate.now().getMonthOfYear();
+			session.setAttribute("month", month);
+			int year = LocalDate.now().getYear();
+			session.setAttribute("year", year);
+		}
+
+	}
 }

@@ -12,6 +12,8 @@ function loadFinanceOperationsData(financeOperationType) {
 		url += "/" + accountName;
 	}
 
+	url += "/" + financeOperationType;
+
 	$.ajax({
 	    url: url,
 	    type: 'GET',
@@ -55,23 +57,26 @@ function generateHtml(financeOperation) {
 	var html = "" +
 	"<div class='finance-info bordered'>" +
 		"<div>" +
-			"<p>" +
-				"<span class='date'>" +
+			"<span class='date'>" +
 				financeOperation.date.year + "-" +
 					("0" + financeOperation.date.monthOfYear).slice(-2)  + "-" +
 					("0" + financeOperation.date.dayOfMonth).slice(-2)  +
-				"</span>" +
-				"<span class='money-amount'>" +
-				financeOperation.currency + " " + (financeOperation.amount).toFixed(2) +
-				"</span>" +
-			"</p>" +
+			"</span>" +
+			"<span class='money-amount'>" +
+				financeOperation.userCurrency + " " + (financeOperation.userCurrencyAmount).toFixed(2) +
+			"</span>" +
 		"</div>" +
+		"<br class='clear' />" +
+		"<div></div>" +
 		"<div>" +
-			"<p>" +
-				"<span class='category'>" + financeOperation.category + "</span>" +
-				"<span class='tags'>" + tags + "</span>" +
-			"</p>" +
+			"<span class='category'>" + financeOperation.category + "</span>" +
+			"<span class='tags'>" + tags + "</span>" +
+			"<span class='actual-amount'>" +
+				financeOperation.currency + " " + (financeOperation.amount).toFixed(2) +
+			"</span>" +
 		"</div>" +
+		"<br class='clear' />" +
+		"<div></div>" +
 	"</div>" +
 	"<div class='operations'>" +
 		"<a href='./editExpense?id=" + financeOperation.id + "' class='btn btn-info btn-xs'>Edit</a>" +
@@ -117,7 +122,7 @@ function draw3dDonut (financeOperationType, data) {
     });
 }
 
-function draw3dGroupedColumn(cdata, categories) {
+function draw3dGroupedColumn(cdata, categories, title) {
 	var chart = new Highcharts.Chart({
         chart: {
             renderTo: 'chart',
@@ -142,7 +147,7 @@ function draw3dGroupedColumn(cdata, categories) {
             }
         },
         title: {
-            text: 'Monthly overview of incomes and expenses'
+            text: title
         },
         subtitle: {
             text: ''
@@ -164,7 +169,7 @@ function reloadTags(category) {
 	    	$("#tags").empty();
 
 	    	$.each(data, function(index, tag) {
-	    		var html = ' <input id="tagelectricity" name="tags" type="checkbox" value="' + tag + '"> ';
+	    		var html = ' <input id="tag' + tag + '" name="tags" type="checkbox" value="' + tag + '"> ';
 	    		html += ' <input type="hidden" name="_tags" value="on"> ';
 	    		html += ' <label for="tag' + tag + '">' + tag + '</label> ';
 	    		$("#tags").append(html);
